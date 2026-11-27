@@ -3,344 +3,652 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Annie — Responsive UI Mockup Audit (375px / 768px / 1280px)</title>
+  <title>Annie — Interactive Obsidian Design Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
   <style>
     :root {
-      --canvas: #faf9f6;
-      --surface: #ffffff;
-      --surface-muted: #f1f5f9;
-      --ink: #111827;
-      --ink-muted: #475569;
-      --border: #e2e8f0;
-      --accent: #047857;
-      --accent-soft: #ecfdf5;
-      --danger: #dc2626;
-      --danger-soft: #fef2f2;
-      --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
-      --font-mono: "Cascadia Code", Consolas, monospace;
+      --obsidian: #0D0E11;
+      --charcoal: #1A1C20;
+      --chrome: #A8B0B8;
+      --silver: #D6DCE2;
+      --white: #F4F6F8;
+      --line: rgba(168, 176, 184, 0.18);
+      --line-strong: rgba(214, 220, 226, 0.38);
+      --font-ui: "Nunito", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: "JetBrains Mono", Consolas, monospace;
+      --ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);
     }
     * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
     body {
-      margin: 0;
-      font-family: var(--font-sans);
-      background: #e5e7eb;
-      color: var(--ink);
-      padding: 24px;
-    }
-    .toolbar {
-      max-width: 1440px;
-      margin: 0 auto 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      justify-content: space-between;
-      background: var(--surface);
-      padding: 14px 18px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-    }
-    .toolbar h1 { margin: 0; font-size: 16px; letter-spacing: -0.01em; }
-    .pill {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      border: 1px solid #a7f3d0;
-    }
-    .frames {
-      max-width: 1440px;
-      margin: 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
-      align-items: flex-start;
-    }
-    .frame-wrap {
+      font-family: var(--font-ui);
+      background: #07080A;
+      color: var(--white);
       display: flex;
       flex-direction: column;
-      gap: 8px;
-    }
-    .frame-label {
-      font-family: var(--font-mono);
-      font-size: 12px;
-      color: var(--ink-muted);
-      font-weight: 600;
-    }
-    .device {
-      background: var(--canvas);
-      border: 2px solid #cbd5e1;
-      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      -webkit-font-smoothing: antialiased;
     }
-    .mobile { width: 375px; }
-    .tablet { width: 768px; max-width: 100%; }
-    .desktop { width: 1280px; max-width: 100%; }
 
-    /* Shared App Layout Preview */
-    .app-header {
+    /* Studio Settings Top Bar */
+    .studio-bar {
+      background: var(--obsidian);
+      border-bottom: 1px solid var(--line);
+      padding: 10px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .studio-id {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.02em;
+      color: var(--white);
+    }
+    .studio-id span {
+      color: var(--chrome);
+      font-weight: 500;
+      font-size: 12px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+    }
+    .seg-group {
+      display: inline-flex;
+      align-items: center;
+      background: var(--charcoal);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px;
+      gap: 2px;
+    }
+    .seg-btn {
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--chrome);
+      background: transparent;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: color 160ms var(--ease-out), background 160ms var(--ease-out);
+    }
+    .seg-btn:hover { color: var(--white); }
+    .seg-btn.active { background: var(--white); color: var(--obsidian); }
+    .meter {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--silver);
+      letter-spacing: 0.02em;
+    }
+
+    /* Stage */
+    .stage {
+      flex: 1;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px 16px 36px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(214, 220, 226, 0.05), transparent 55%),
+        #07080A;
+    }
+
+    /* Simulated Device Frame */
+    .viewport-shell {
+      width: 1280px;
+      max-width: 100%;
+      height: 760px;
+      background: var(--obsidian);
+      border: 1px solid var(--line-strong);
+      border-radius: 22px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.65);
+      transition: width 260ms var(--ease-out), height 260ms var(--ease-out);
+    }
+    .viewport-shell.vp-mobile { width: 375px; height: 740px; border-radius: 34px; }
+    .viewport-shell.vp-tablet { width: 768px; height: 760px; border-radius: 26px; }
+    .viewport-shell.vp-desktop { width: 1280px; height: 760px; }
+
+    /* App Header */
+    .app-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 16px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--obsidian);
+      flex-shrink: 0;
+      gap: 12px;
     }
-    .brand { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .head-actions { display: flex; align-items: center; gap: 8px; }
     .btn {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 8px 12px;
+      font-family: var(--font-ui);
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 8px 14px;
       min-height: 36px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--surface);
-      color: var(--ink);
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: var(--charcoal);
+      color: var(--white);
       cursor: pointer;
+      transition: transform 150ms var(--ease-out), border-color 150ms var(--ease-out), background 150ms var(--ease-out);
     }
-    .btn-kill {
-      background: var(--danger);
-      color: #fff;
-      border-color: var(--danger);
-    }
-    .btn-accent {
-      background: var(--accent);
-      color: #fff;
-      border-color: var(--accent);
-    }
-    .grid-desktop {
+    .btn:hover { border-color: var(--white); transform: translateY(-1px); }
+    .btn:active { transform: scale(0.98); }
+    .btn-invert { background: var(--white); color: var(--obsidian); border-color: var(--white); }
+    .btn-ghost { background: transparent; border-color: var(--line); color: var(--silver); }
+
+    /* App Grid */
+    .app-body {
+      flex: 1;
+      min-height: 0;
       display: grid;
-      grid-template-columns: 240px 1fr 340px;
-      min-height: 460px;
+      grid-template-columns: 260px 1fr 330px;
     }
-    .grid-tablet {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      min-height: 420px;
-    }
-    .grid-mobile {
+    .vp-tablet .app-body { grid-template-columns: 1fr 300px; }
+    .vp-tablet .col-vault { display: none; }
+    .vp-mobile .app-body { display: flex; flex-direction: column; }
+    .vp-mobile .pane { display: none; flex: 1; }
+    .vp-mobile .pane.mobile-active { display: flex; flex-direction: column; }
+
+    .pane {
+      min-width: 0;
+      min-height: 0;
+      border-right: 1px solid var(--line);
       display: flex;
       flex-direction: column;
-      min-height: 520px;
-    }
-    .pane {
-      padding: 14px;
-      border-right: 1px solid var(--border);
-      min-width: 0; /* prevents flex/grid horizontal overflow */
+      position: relative;
     }
     .pane:last-child { border-right: none; }
-    .section-title {
-      font-size: 11px;
+    .pane-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .pane-scroll.chat-pad { padding-bottom: 108px; }
+
+    .kicker {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--ink-muted);
-      margin: 0 0 10px;
-      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--chrome);
+      margin: 0 0 14px;
+    }
+
+    /* Surfaces & Messages */
+    .surface {
+      background: var(--charcoal);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 15px 16px;
+      margin-bottom: 12px;
+    }
+    .surface-light {
+      background: var(--white);
+      color: var(--obsidian);
+      border-color: var(--white);
     }
     .msg {
-      padding: 10px 12px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      font-size: 13px;
-      line-height: 1.45;
+      max-width: 84%;
+      padding: 13px 16px;
+      border-radius: 18px;
+      margin-bottom: 14px;
+      font-size: 14.5px;
+      line-height: 1.55;
       word-break: break-word;
     }
-    .msg-user { background: var(--ink); color: #fff; margin-left: 28px; }
-    .msg-annie { background: var(--surface); border: 1px solid var(--border); margin-right: 16px; }
-    .msg-proactive { background: var(--accent-soft); border: 1px solid #a7f3d0; }
-    .actions-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .composer {
-      display: flex;
-      gap: 8px;
-      padding: 10px 14px;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
+    .msg-user {
+      margin-left: auto;
+      background: var(--white);
+      color: var(--obsidian);
+      border-bottom-right-radius: 6px;
+      font-weight: 600;
     }
-    .composer input {
-      flex: 1;
-      min-width: 0;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 13px;
+    .msg-annie {
+      background: var(--charcoal);
+      color: var(--white);
+      border: 1px solid var(--line);
+      border-bottom-left-radius: 6px;
     }
-    .trace-item {
+    .msg-meta {
       font-family: var(--font-mono);
       font-size: 11px;
-      padding: 8px;
-      background: var(--surface-muted);
-      border-radius: 6px;
-      margin-bottom: 6px;
-      border-left: 3px solid var(--accent);
+      color: var(--chrome);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .action-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* Custom Progress Ring & Hairline Loader (No Emojis / No Badges) */
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--charcoal);
+      border: 1px solid var(--line-strong);
+      border-radius: 14px;
+      margin-bottom: 14px;
+    }
+    .ring-spin { animation: spin 1.2s linear infinite; transform-origin: center; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .shimmer-track {
+      height: 2px;
+      width: 100%;
+      background: var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .shimmer-bar {
+      height: 100%;
+      width: 42%;
+      background: linear-gradient(90deg, transparent, var(--white), transparent);
+      animation: glide 1.4s ease-in-out infinite;
+    }
+    @keyframes glide {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(300%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ring-spin, .shimmer-bar { animation: none; }
+    }
+
+    /* Connections List */
+    .conn-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 13.5px;
+    }
+    .conn-item:last-child { border-bottom: none; }
+    .conn-state {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--silver);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-line {
+      width: 14px;
+      height: 2px;
+      background: var(--white);
+      border-radius: 2px;
+    }
+    .status-line.off { background: rgba(168, 176, 184, 0.3); }
+
+    /* Telemetry Log */
+    .trace-row {
+      padding: 10px 12px;
+      border-left: 2px solid var(--silver);
+      background: rgba(26, 28, 32, 0.72);
+      border-radius: 0 10px 10px 0;
+      margin-bottom: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--silver);
       word-break: break-word;
     }
-    .trace-item.warn { border-left-color: var(--danger); background: var(--danger-soft); }
-    .conn-row {
+    .trace-row strong { color: var(--white); font-weight: 600; }
+    .trace-row.alert { border-left-color: var(--white); background: #22252B; }
+
+    /* Floating Dynamic Input Dock + Separate Floating Attachment Icon */
+    .floating-dock {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 18px;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
+      gap: 10px;
+      pointer-events: none;
     }
-    .mobile-tabs {
+    .attach-fab {
+      pointer-events: auto;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--charcoal);
+      border: 1px solid var(--line-strong);
+      color: var(--silver);
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      border-top: 1px solid var(--border);
-      background: var(--surface);
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+      transition: transform 180ms var(--ease-out), border-color 180ms var(--ease-out), color 180ms var(--ease-out);
     }
-    .mobile-tabs button {
-      border: none;
+    .attach-fab:hover { transform: translateY(-2px); border-color: var(--white); color: var(--white); }
+    .input-pill {
+      pointer-events: auto;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(26, 28, 32, 0.94);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      padding: 6px 6px 6px 18px;
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+      transition: border-color 180ms var(--ease-out), transform 180ms var(--ease-out);
+    }
+    .input-pill:focus-within { border-color: var(--white); transform: translateY(-1px); }
+    .input-pill input {
+      flex: 1;
+      min-width: 0;
       background: transparent;
-      padding: 12px 6px;
-      min-height: 44px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--ink-muted);
+      border: none;
+      outline: none;
+      color: var(--white);
+      font-family: var(--font-ui);
+      font-size: 14px;
     }
-    .mobile-tabs button.active { color: var(--accent); border-top: 2px solid var(--accent); }
+    .input-pill input::placeholder { color: var(--chrome); }
+    .send-fab {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: var(--white);
+      color: var(--obsidian);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 140ms var(--ease-out);
+    }
+    .send-fab:hover { transform: scale(1.05); }
+
+    /* Mobile Bottom Navigation */
+    .mobile-nav {
+      display: none;
+      border-top: 1px solid var(--line);
+      background: var(--obsidian);
+      padding: 4px 8px;
+      flex-shrink: 0;
+    }
+    .vp-mobile .mobile-nav { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .mobile-nav button {
+      font-family: var(--font-ui);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--chrome);
+      background: transparent;
+      border: none;
+      min-height: 44px;
+      cursor: pointer;
+    }
+    .mobile-nav button.active { color: var(--white); }
   </style>
 </head>
 <body>
-  <div class="toolbar">
-    <h1>Annie UI Responsive Mockup Audit — Mobile (375px) · Tablet (768px) · Desktop (1280px)</h1>
-    <span class="pill" id="overflow-status">Overflow check: pending...</span>
+  <div class="studio-bar">
+    <div class="studio-id">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4F6F8" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      ANNIE STUDIO <span>Obsidian &amp; Chrome Mockup</span>
+    </div>
+    <div class="controls">
+      <div class="seg-group" id="vp-controls" aria-label="Viewport size">
+        <button class="seg-btn" data-vp="vp-mobile">375px</button>
+        <button class="seg-btn" data-vp="vp-tablet">768px</button>
+        <button class="seg-btn active" data-vp="vp-desktop">1280px</button>
+      </div>
+      <div class="seg-group" id="state-controls" aria-label="App state">
+        <button class="seg-btn active" data-state="proactive">T-30m Alert</button>
+        <button class="seg-btn" data-state="running">Running</button>
+        <button class="seg-btn" data-state="triage">Renewal Triage</button>
+        <button class="seg-btn" data-state="killed">Kill Switch</button>
+      </div>
+      <div class="meter" id="overflow-meter">OVERFLOW: CHECKING</div>
+    </div>
   </div>
 
-  <div class="frames">
-    <!-- 375px Mobile PWA -->
-    <div class="frame-wrap">
-      <div class="frame-label">MOBILE PWA · 375px (Thumb-Zone Tabs, 44px Touch Targets, min-width: 0)</div>
-      <div class="device mobile">
-        <div class="app-header">
-          <div class="brand"><span class="dot"></span> Annie</div>
-          <button class="btn btn-kill">Kill Run</button>
+  <div class="stage">
+    <div class="viewport-shell vp-desktop" id="shell">
+      <header class="app-head">
+        <div class="brand">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D6DCE2" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8 12h8"/></svg>
+          Annie
         </div>
-        <div class="grid-mobile">
-          <div class="pane" style="flex:1; border-right:none;">
-            <div class="msg msg-user">Remind me to go to school Tuesday 6pm</div>
-            <div class="msg msg-annie">
-              Scheduled <strong>Go to school</strong> for Tue 18:00. Created <code>rem-8f2a.ics</code> and armed T-30m weather + OSRM check.
-            </div>
-            <div class="msg msg-proactive">
-              <strong>Proactive T-30m Alert:</strong> School starts in 30 mins. 16-min walk (2.1 km), 19°C, 60% rain. Open directions?
-              <div class="actions-row">
-                <button class="btn btn-accent">Get Directions</button>
-                <button class="btn">Snooze 10m</button>
-              </div>
-            </div>
-          </div>
-          <div class="composer">
-            <input type="text" placeholder="Ask Annie anything..." />
-            <button class="btn btn-accent">Send</button>
-          </div>
-          <div class="mobile-tabs">
-            <button class="active">Chat</button>
-            <button>Connections</button>
-            <button>Monitor</button>
-          </div>
+        <div class="head-actions">
+          <button class="btn btn-ghost" id="btn-sandbox-demo">Sandbox</button>
+          <button class="btn" id="btn-kill-demo">Stop Run</button>
         </div>
-      </div>
-    </div>
+      </header>
 
-    <!-- 768px Tablet -->
-    <div class="frame-wrap">
-      <div class="frame-label">TABLET · 768px (Chat + Live Monitor Split)</div>
-      <div class="device tablet">
-        <div class="app-header">
-          <div class="brand"><span class="dot"></span> Annie · Life Admin</div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn">Judge Sandbox</button>
-            <button class="btn btn-kill">Kill Switch</button>
-          </div>
-        </div>
-        <div class="grid-tablet">
-          <div class="pane" style="display:flex;flex-direction:column;justify-content:space-between;">
-            <div>
-              <div class="msg msg-user">Check my Search Console traffic this week</div>
-              <div class="msg msg-annie">Sandbox GSC (shared across Web + Telegram): 1,420 clicks (+14%), 38.2k impressions. Top query: "annie agent".</div>
+      <div class="app-body">
+        <!-- Vault Column -->
+        <aside class="pane col-vault" id="pane-vault">
+          <div class="pane-scroll">
+            <p class="kicker">Connected Accounts</p>
+            <div class="surface">
+              <div class="conn-item"><span>Gmail &amp; Calendar</span><span class="conn-state"><span class="status-line"></span>Linked</span></div>
+              <div class="conn-item"><span>Search Console</span><span class="conn-state"><span class="status-line"></span>Linked</span></div>
+              <div class="conn-item"><span>Outlook</span><span class="conn-state"><span class="status-line off"></span>Off</span></div>
+              <div class="conn-item"><span>Treg Gateway</span><span class="conn-state"><span class="status-line"></span>Active</span></div>
             </div>
-            <div class="composer" style="padding:10px 0 0;border:none;">
-              <input type="text" placeholder="Ask Annie anything..." />
-              <button class="btn btn-accent">Send</button>
+            <p class="kicker" style="margin-top:20px;">Share Across Channels</p>
+            <div class="surface">
+              <div style="font-size:13px;color:var(--silver);line-height:1.5;">Send this code on WhatsApp or Telegram to use the same account:</div>
+              <div style="font-family:var(--font-mono);font-size:15px;font-weight:600;margin-top:10px;letter-spacing:0.08em;color:var(--white);">LINK-482910</div>
             </div>
           </div>
-          <div class="pane">
-            <p class="section-title">Live Monitor (SSE)</p>
-            <div class="trace-item">[#1] ingress: web:usr-sandbox</div>
-            <div class="trace-item">[#2] parse: pro_analytics (0.92)</div>
-            <div class="trace-item">[#3] policy: ALLOW pro_analytics</div>
-            <div class="trace-item warn">[#4] quarantine: hidden_html_stripped</div>
-          </div>
-        </div>
-      </div>
-    </div>
+        </aside>
 
-    <!-- 1280px Desktop -->
-    <div class="frame-wrap">
-      <div class="frame-label">DESKTOP · 1280px (Connections Vault + Chat + Live Monitor)</div>
-      <div class="device desktop">
-        <div class="app-header">
-          <div class="brand"><span class="dot"></span> Annie — Proactive Personal Agent</div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn">1-Click Judge Sandbox</button>
-            <button class="btn">Simulate T-30m Tick</button>
-            <button class="btn btn-kill">Kill Active Run</button>
-          </div>
-        </div>
-        <div class="grid-desktop">
-          <div class="pane">
-            <p class="section-title">Shared Auth Vault</p>
-            <div class="conn-row"><span>Google (Gmail + Cal)</span><span class="pill">Linked</span></div>
-            <div class="conn-row"><span>Search Console</span><span class="pill">Linked</span></div>
-            <div class="conn-row"><span>Outlook</span><span style="font-size:12px;color:#64748b;">Connect</span></div>
-            <div class="conn-row"><span>Treg (4,200+ APIs)</span><span class="pill">Active</span></div>
-            <p class="section-title" style="margin-top:16px;">Channel Linking</p>
-            <div class="trace-item">Send <strong>LINK-482910</strong> on Telegram or WhatsApp to share this vault.</div>
-          </div>
-          <div class="pane" style="display:flex;flex-direction:column;justify-content:space-between;">
-            <div>
-              <div class="msg msg-user">Remind me to go to school Tuesday 6pm</div>
-              <div class="msg msg-annie">Scheduled <strong>Go to school</strong> for Tue 18:00. Created <code>rem-8f2a.ics</code> and armed T-30m weather + OSRM check.</div>
-              <div class="msg msg-proactive">
-                <strong>Proactive T-30m Alert:</strong> School starts in 30 mins. 16-min walk (2.1 km), 19°C, 60% rain.
-                <div class="actions-row">
-                  <button class="btn btn-accent">Get Directions</button>
-                  <button class="btn">Snooze 10m</button>
-                  <button class="btn">Call Me</button>
-                </div>
-              </div>
-            </div>
-            <div class="composer" style="padding:10px 0 0;border:none;">
-              <input type="text" placeholder="Text Annie (calendar, errands, renewals, Search Console, TikTok)..." />
-              <button class="btn btn-accent">Send</button>
+        <!-- Chat Column -->
+        <section class="pane mobile-active" id="pane-chat">
+          <div class="pane-scroll chat-pad" id="chat-feed"></div>
+
+          <div class="floating-dock">
+            <button class="attach-fab" title="Attach file, invoice, or audio" aria-label="Attach file">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
+            <div class="input-pill">
+              <input type="text" placeholder="Ask Annie to handle something..." />
+              <button class="send-fab" aria-label="Send message">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14"/><path d="M13 5l7 7-7 7"/>
+                </svg>
+              </button>
             </div>
           </div>
-          <div class="pane">
-            <p class="section-title">Live Monitor &amp; Hash-Chain Audit</p>
-            <div class="trace-item">[#1] ingress: web:usr-sandbox · $0.000</div>
-            <div class="trace-item">[#2] parse: schedule_reminder (0.94)</div>
-            <div class="trace-item">[#3] policy: ALLOW write_reminder</div>
-            <div class="trace-item">[#4] tool: rem-8f2a.ics + T-30m armed</div>
-            <div class="trace-item">[#5] heartbeat: OSRM 16m + Open-Meteo 19°C</div>
+        </section>
+
+        <!-- Live Monitor Column -->
+        <aside class="pane" id="pane-monitor">
+          <div class="pane-scroll">
+            <p class="kicker">Live Trace &amp; Guardrails</p>
+            <div id="trace-feed"></div>
           </div>
-        </div>
+        </aside>
       </div>
+
+      <nav class="mobile-nav" id="mobile-nav">
+        <button class="active" data-tab="pane-chat">Chat</button>
+        <button data-tab="pane-vault">Accounts</button>
+        <button data-tab="pane-monitor">Monitor</button>
+      </nav>
     </div>
   </div>
 
   <script>
-    const devices = [...document.querySelectorAll('.device')];
-    const overflows = devices.filter(el => el.scrollWidth > el.clientWidth);
-    const badge = document.getElementById('overflow-status');
-    badge.textContent = overflows.length === 0
-      ? 'Overflow check: PASS (0 horizontal overflows across 375px / 768px / 1280px)'
-      : `Overflow check: FAIL (${overflows.length} frame(s) overflow)`;
+    const STATES = {
+      proactive: {
+        chat: `
+          <div class="msg msg-user">Remind me to go to school Tuesday at 6pm.</div>
+          <div class="msg msg-annie">
+            Done. Added <strong>Go to school</strong> to your calendar for Tuesday at 18:00 and set a 30-minute check before you leave.
+            <div class="msg-meta"><span>rem-8f2a.ics</span><span>run r-7f3a</span></div>
+          </div>
+          <div class="msg msg-annie" style="border-color:var(--line-strong);">
+            <strong>Leaving in 30 minutes.</strong> Walking takes 16 minutes (2.1 km) and light rain is starting around 17:45. Want directions on the map?
+            <div class="action-strip">
+              <button class="btn btn-invert">Open Directions</button>
+              <button class="btn">Snooze 10 min</button>
+              <button class="btn btn-ghost">Call Me</button>
+            </div>
+          </div>
+        `,
+        traces: [
+          "<strong>#5 heartbeat</strong> · OSRM 16 min + Open-Meteo 19°C (60% rain)",
+          "<strong>#4 write_reminder</strong> · saved rem-8f2a.ics &amp; armed T-30m",
+          "<strong>#3 policy</strong> · ALLOW write_reminder ($0.001)",
+          "<strong>#2 parse</strong> · schedule_reminder (0.94)",
+          "<strong>#1 ingress</strong> · web:usr-sandbox"
+        ]
+      },
+      running: {
+        chat: `
+          <div class="msg msg-user">Check my Search Console visits this week and compare with last week.</div>
+          <div class="progress-row">
+            <svg class="ring-spin" width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="rgba(168,176,184,0.25)" stroke-width="2.2"/>
+              <path d="M12 3a9 9 0 0 1 9 9" stroke="#F4F6F8" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13.5px;font-weight:700;">Checking Search Console via shared vault</div>
+              <div style="font-family:var(--font-mono);font-size:11px;color:var(--chrome);">Step 2 of 4 · Reading clicks and top queries</div>
+              <div class="shimmer-track"><div class="shimmer-bar"></div></div>
+            </div>
+          </div>
+        `,
+        traces: [
+          "<strong>#3 gather</strong> · querying google_search_console (token injected server-side)",
+          "<strong>#2 policy</strong> · ALLOW pro_analytics · SSRF verified",
+          "<strong>#1 ingress</strong> · web:usr-sandbox"
+        ]
+      },
+      triage: {
+        chat: `
+          <div class="msg msg-user">Check this broadband renewal notice I forwarded.</div>
+          <div class="msg msg-annie" style="border-color:var(--white);">
+            <strong>Quarantined 1 hidden instruction.</strong> The email contained a prompt telling me to wire 500 EUR. I dropped that line and kept only the bill numbers.
+            <div class="msg-meta"><span>ALLOW_PAYMENTS=false</span><span>injection_suspected</span></div>
+          </div>
+          <div class="msg msg-annie">
+            Your plan jumps from <strong>45 EUR to 54 EUR/month (+20%)</strong>. I drafted a switch inquiry. Nothing goes out until you confirm.
+            <div class="action-strip">
+              <button class="btn btn-invert">Approve (YES apr-91f2)</button>
+              <button class="btn btn-ghost">Cancel</button>
+            </div>
+          </div>
+        `,
+        traces: [
+          "<strong>#4 awaiting_approval</strong> · gated send_external_email behind YES apr-91f2",
+          "<strong>#3 policy</strong> · BLOCK execute_payment (ALLOW_PAYMENTS=false)",
+          "<strong>#2 sanitise</strong> · quarantined ignore_instructions + hidden_html_stripped",
+          "<strong>#1 ingress</strong> · renewal notice (1.4 KB)"
+        ]
+      },
+      killed: {
+        chat: `
+          <div class="msg msg-user">Plan Saturday in Lisbon for two under 60 EUR.</div>
+          <div class="msg msg-annie" style="border-color:var(--line-strong);">
+            <strong>Stopped mid-run.</strong> You pressed Stop Run while fetching routes. Pending requests were cancelled and nothing was saved to your calendar.
+            <div class="msg-meta"><span>killed_by_user</span><span>hash-chain valid (3 events)</span></div>
+          </div>
+        `,
+        traces: [
+          "<strong>#3 killed_by_user</strong> · AbortController cancelled in-flight fetch in 18ms",
+          "<strong>#2 policy</strong> · ALLOW plan_itinerary",
+          "<strong>#1 ingress</strong> · web:usr-sandbox"
+        ]
+      }
+    };
+
+    const shell = document.getElementById("shell");
+    const chatFeed = document.getElementById("chat-feed");
+    const traceFeed = document.getElementById("trace-feed");
+    const meter = document.getElementById("overflow-meter");
+
+    function checkOverflow() {
+      requestAnimationFrame(() => {
+        const overflow = shell.scrollWidth > shell.clientWidth;
+        meter.textContent = overflow
+          ? `OVERFLOW: FAIL (${shell.scrollWidth}px > ${shell.clientWidth}px)`
+          : `WIDTH ${shell.clientWidth}px · 0 OVERFLOW`;
+      });
+    }
+
+    function renderState(key) {
+      const s = STATES[key];
+      chatFeed.innerHTML = s.chat;
+      traceFeed.innerHTML = s.traces
+        .map((t, i) => `<div class="trace-row${i === 0 ? " alert" : ""}">${t}</div>`)
+        .join("");
+      checkOverflow();
+    }
+
+    document.querySelectorAll("#vp-controls .seg-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#vp-controls .seg-btn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        shell.className = "viewport-shell " + b.dataset.vp;
+        setTimeout(checkOverflow, 280);
+      });
+    });
+
+    document.querySelectorAll("#state-controls .seg-btn").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#state-controls .seg-btn").forEach((x) => x.classList.remove("active"));
+        b.classList.add("active");
+        renderState(b.dataset.state);
+      });
+    });
+
+    document.querySelectorAll("#mobile-nav button").forEach((b) => {
+      b.addEventListener("click", () => {
+        document.querySelectorAll("#mobile-nav button").forEach((x) => x.classList.remove("active"));
+        document.querySelectorAll(".pane").forEach((p) => p.classList.remove("mobile-active"));
+        b.classList.add("active");
+        document.getElementById(b.dataset.tab).classList.add("mobile-active");
+        checkOverflow();
+      });
+    });
+
+    renderState("proactive");
   </script>
 </body>
 </html>

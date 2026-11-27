@@ -1,9 +1,9 @@
 {
-  "name": "Annie — Proactive Personal Agent",
+  "name": "Annie",
   "short_name": "Annie",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#faf9f6",
-  "theme_color": "#047857",
+  "background_color": "#0D0E11",
+  "theme_color": "#0D0E11",
   "icons": []
 }
