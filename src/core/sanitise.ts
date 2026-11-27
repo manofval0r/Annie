@@ -14,6 +14,9 @@ const SECRET_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "otp_code", regex: /\b(?:otp|verification\s+code)[:\s#-]*\d{4,8}\b/gi },
 ];
 
+const HIDDEN_HTML_RE =
+  /<([a-z0-9]+)[^>]*style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi;
+
 export interface SanitiseResult {
   clean: string;
   suspicions: string[];
@@ -31,25 +34,21 @@ export function sanitiseExternalData(raw: string): SanitiseResult {
   let truncated = false;
   let redacted = false;
 
-  // 1. Cap at 8 KB before heavy regexes (prevents truncation-bomb / ReDoS)
   if (Buffer.byteLength(text, "utf8") > MAX_INPUT_BYTES) {
     text = Buffer.from(text, "utf8").subarray(0, MAX_INPUT_BYTES).toString("utf8");
     truncated = true;
     suspicions.push("input_truncated");
   }
 
-  // 2. Strip hidden HTML elements, scripts, styles, and tags
-  if (/<[^>]+style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)[^"']*["'][^>]*>[\s\S]*?<\/[^>]+>/i.test(text)) {
+  const afterHidden = text.replace(HIDDEN_HTML_RE, " ");
+  if (afterHidden !== text) {
     suspicions.push("hidden_html_stripped");
-    text = text.replace(
-      /<([a-z0-9]+)[^>]*style\s*=\s*["'][^"']*(?:display\s*:\s*none|visibility\s*:\s*hidden)[^"']*["'][^>]*>[\s\S]*?<\/\1>/gi,
-      " "
-    );
+    text = afterHidden;
   }
   text = text.replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ");
   text = text.replace(/<[^>]+>/g, " ");
 
-  // 3. Scan for base64-encoded injections (decode only for scanning, never execute)
+  // Decode base64 tokens solely for injection scanning; never execute
   const b64Matches = text.match(/\b[A-Za-z0-9+/]{24,}={0,2}\b/g) ?? [];
   for (const token of b64Matches) {
     try {
@@ -63,15 +62,14 @@ export function sanitiseExternalData(raw: string): SanitiseResult {
     }
   }
 
-  // 4. Redact secrets before LLM or logs see tool output
   for (const pat of SECRET_PATTERNS) {
-    if (pat.regex.test(text)) {
+    const next = text.replace(pat.regex, `[REDACTED_${pat.label.toUpperCase()}]`);
+    if (next !== text) {
       redacted = true;
-      text = text.replace(pat.regex, `[REDACTED_${pat.label.toUpperCase()}]`);
+      text = next;
     }
   }
 
-  // 5. Quarantine instruction-like lines
   const keptLines: string[] = [];
   for (const line of text.split(/\r?\n/)) {
     const matched = INJECTION_PATTERNS.find((p) => p.regex.test(line));

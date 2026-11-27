@@ -116,9 +116,10 @@ export function verifyHashChain(
 ): { valid: boolean; count: number; brokenAtSeq?: number } {
   const rows = getRunEvents(db, runId);
   let expectedPrev = "GENESIS";
+  let expectedSeq = 1;
 
   for (const row of rows) {
-    if (row.prevHash !== expectedPrev) {
+    if (row.seq !== expectedSeq || row.prevHash !== expectedPrev) {
       return { valid: false, count: rows.length, brokenAtSeq: row.seq };
     }
     const expectedHash = computeEventHash({
@@ -135,6 +136,7 @@ export function verifyHashChain(
       return { valid: false, count: rows.length, brokenAtSeq: row.seq };
     }
     expectedPrev = row.hash;
+    expectedSeq += 1;
   }
 
   return { valid: true, count: rows.length };

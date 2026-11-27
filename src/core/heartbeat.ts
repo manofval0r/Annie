@@ -48,8 +48,7 @@ interface PlaceRow {
 
 /**
  * Proactive T-30m heartbeat worker.
- * Finds due scheduled reminders, checks weather + OSRM route ETA, and dispatches
- * an interactive notification asking if the user wants map directions.
+ * Atomically claims due scheduled reminders to prevent duplicate alerts on overlapping ticks.
  */
 export async function tickHeartbeat(
   db: DatabaseSync,
@@ -67,7 +66,16 @@ export async function tickHeartbeat(
   const processedIds: string[] = [];
 
   for (const rem of due) {
-    if (isRunKilled(db, rem.run_id)) continue;
+    if (isRunKilled(db, rem.run_id)) {
+      db.prepare("UPDATE reminders SET status = 'cancelled' WHERE id = ? AND status = 'scheduled'").run(rem.id);
+      continue;
+    }
+
+    // Atomically claim before async network calls so overlapping ticks cannot duplicate
+    const claim = db
+      .prepare("UPDATE reminders SET status = 'processing' WHERE id = ? AND status = 'scheduled'")
+      .run(rem.id);
+    if (claim.changes === 0) continue;
 
     const home = db
       .prepare("SELECT label, lat, lon FROM saved_places WHERE user_id = ? AND label = 'home'")
@@ -116,24 +124,35 @@ export async function tickHeartbeat(
       { label: "Call Me", action: `call:${rem.id}` },
     ];
 
-    await deps.notify({
-      reminderId: rem.id,
-      channel: rem.channel,
-      senderId: rem.sender_id,
-      title: `Annie Reminder: ${rem.title}`,
-      body,
-      buttons,
-    });
+    try {
+      await deps.notify({
+        reminderId: rem.id,
+        channel: rem.channel,
+        senderId: rem.sender_id,
+        title: `Annie Reminder: ${rem.title}`,
+        body,
+        buttons,
+      });
 
-    db.prepare("UPDATE reminders SET status = 'notified' WHERE id = ?").run(rem.id);
-    appendAuditEvent(db, {
-      runId: rem.run_id,
-      actor: "system",
-      type: "proactive_heartbeat_sent",
-      summary: `Dispatched T-30m alert for ${rem.id} (${rem.title})`,
-      payload: { reminderId: rem.id, eta, weather },
-    });
-    processedIds.push(rem.id);
+      db.prepare("UPDATE reminders SET status = 'notified' WHERE id = ?").run(rem.id);
+      appendAuditEvent(db, {
+        runId: rem.run_id,
+        actor: "system",
+        type: "proactive_heartbeat_sent",
+        summary: `Dispatched T-30m alert for ${rem.id} (${rem.title})`,
+        payload: { reminderId: rem.id, eta, weather },
+      });
+      processedIds.push(rem.id);
+    } catch (err) {
+      // Revert to scheduled so a subsequent tick can retry without blocking other reminders
+      db.prepare("UPDATE reminders SET status = 'scheduled' WHERE id = ?").run(rem.id);
+      appendAuditEvent(db, {
+        runId: rem.run_id,
+        actor: "system",
+        type: "proactive_heartbeat_error",
+        summary: `Failed to notify ${rem.id}: ${String(err)}`,
+      });
+    }
   }
 
   return { processed: processedIds.length, reminderIds: processedIds };

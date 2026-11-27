@@ -1,13 +1,30 @@
 import { z } from "zod";
+import { isUrlAllowed } from "../core/policy.js";
 import { IntentSchema, type ParsedIntent } from "../core/types.js";
 
 const ParsedIntentSchema = z.object({
   intent: IntentSchema,
   confidence: z.number().min(0).max(1),
-  missingFields: z.array(z.string()).optional(),
-  clarifyingQuestion: z.string().optional(),
   params: z.record(z.unknown()).default({}),
 });
+
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
+function validateLlmBaseUrl(rawUrl: string, allowLoopback: boolean): string | null {
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (allowLoopback && LOOPBACK_HOSTS.has(host) && (parsed.protocol === "http:" || parsed.protocol === "https:")) {
+      return rawUrl.replace(/\/+$/, "");
+    }
+    if (isUrlAllowed(rawUrl).allowed) {
+      return rawUrl.replace(/\/+$/, "");
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Deterministic zero-key parser for mock/CI/offline judge runs.
@@ -37,13 +54,13 @@ export function parseIntentDeterministic(rawText: string, now = new Date()): Par
     };
   }
 
-  // 3. Cancel run
-  const cancelMatch = lower.match(/\b(?:cancel|stop|kill)\s+(?:run\s+)?([a-z0-9_-]+)\b/i);
+  // 3. Cancel run (requires explicit "run <id>" or "r-<hex>" so Life Admin text isn't hijacked)
+  const cancelMatch = lower.match(/\b(?:cancel|stop|kill)\s+(?:run\s+([a-z0-9_-]+)|(r-[a-f0-9]{4,}))\b/i);
   if (cancelMatch) {
     return {
       intent: "cancel_run",
       confidence: 0.95,
-      params: { runId: cancelMatch[1] },
+      params: { runId: cancelMatch[1] || cancelMatch[2] },
     };
   }
 
@@ -108,8 +125,8 @@ export function parseIntentDeterministic(rawText: string, now = new Date()): Par
     let hour = 18;
     let minute = 0;
     if (timeMatch) {
-      hour = Number(timeMatch[1]);
-      minute = timeMatch[2] ? Number(timeMatch[2]) : 0;
+      hour = Math.min(23, Number(timeMatch[1]));
+      minute = timeMatch[2] ? Math.min(59, Number(timeMatch[2])) : 0;
       const meridiem = timeMatch[3].toLowerCase();
       if (meridiem === "pm" && hour < 12) hour += 12;
       if (meridiem === "am" && hour === 12) hour = 0;
@@ -117,12 +134,13 @@ export function parseIntentDeterministic(rawText: string, now = new Date()): Par
 
     const locationMatch = lower.match(/\b(school|work|office|gym|home|airport)\b/);
     const eventDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    eventDate.setHours(hour, minute, 0, 0);
+    eventDate.setUTCHours(hour, minute, 0, 0);
 
-    const title = text
-      .replace(/^remind\s+me\s+to\s+/i, "")
-      .replace(/\s+on\s+\w+,?\s*\d{1,2}(:\d{2})?\s*(am|pm)?/i, "")
-      .trim() || "Scheduled Reminder";
+    const title =
+      text
+        .replace(/^remind\s+me\s+to\s+/i, "")
+        .replace(/\s+on\s+\w+,?\s*\d{1,2}(:\d{2})?\s*(am|pm)?/i, "")
+        .trim() || "Scheduled Reminder";
 
     return {
       intent: "schedule_reminder",
@@ -145,8 +163,7 @@ export function parseIntentDeterministic(rawText: string, now = new Date()): Par
 
 /**
  * Parses natural language into a schema-validated ParsedIntent.
- * Uses OpenAI-compatible JSON mode when LLM_PROVIDER is ollama/groq/gemini,
- * falling back to deterministic parsing in zero-key mock mode.
+ * Supports mock (zero-key default), ollama (loopback), and groq (HTTPS allow-listed).
  */
 export async function parseIntent(
   rawText: string,
@@ -158,14 +175,15 @@ export async function parseIntent(
     return parseIntentDeterministic(rawText, now);
   }
 
-  // shortcut: cloud/ollama LLM calls use OpenAI-compatible chat/completions; upgrade to native tool schemas if needed
-  const baseUrl =
+  // shortcut: only mock, ollama, and groq are wired in Round 2; add gemini/workers-ai in Round 4 if needed
+  const rawBase =
     provider === "groq"
       ? "https://api.groq.com/openai/v1"
       : provider === "ollama"
         ? process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1"
         : null;
 
+  const baseUrl = rawBase ? validateLlmBaseUrl(rawBase, provider === "ollama") : null;
   if (!baseUrl) {
     return parseIntentDeterministic(rawText, now);
   }
@@ -175,6 +193,9 @@ export async function parseIntent(
     provider === "groq"
       ? process.env.GROQ_MODEL || "llama-3.1-8b-instant"
       : process.env.OLLAMA_MODEL || "qwen3:4b";
+
+  const timeoutSignal = AbortSignal.timeout(15_000);
+  const combinedSignal = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
 
   try {
     const res = await fetch(`${baseUrl}/chat/completions`, {
@@ -195,7 +216,7 @@ export async function parseIntent(
           { role: "user", content: rawText },
         ],
       }),
-      signal,
+      signal: combinedSignal,
     });
     if (!res.ok) return parseIntentDeterministic(rawText, now);
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };

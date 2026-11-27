@@ -7,14 +7,13 @@ import { clearRunController, isRunKilled, registerRunController, triggerKill } f
 import { evaluatePolicy } from "./policy.js";
 import { sanitiseExternalData } from "./sanitise.js";
 import { parseIntent } from "../llm/provider.js";
-import type { ActionButton, NormalizedMessage, ParsedIntent } from "./types.js";
+import type { NormalizedMessage, ParsedIntent } from "./types.js";
 
 export interface RunResult {
   runId: string;
   status: "completed" | "killed_by_user" | "awaiting_approval" | "failed" | "partial";
   intent: string;
   reply: string;
-  buttons?: ActionButton[];
   icsPath?: string;
   reminderId?: string;
   suspicions?: string[];
@@ -24,7 +23,7 @@ export interface OrchestratorOptions {
   traceDir?: string;
   artifactDir?: string;
   now?: Date;
-  onStepDelayMs?: number; // used in tests/demos to observe mid-flight kill switch
+  onStepDelayMs?: number;
 }
 
 function buildMinimalIcs(id: string, title: string, eventAtIso: string, location?: string | null): string {
@@ -81,7 +80,6 @@ export async function runPipeline(
   const userId = resolveUserId(db, msg);
   const runId = `r-${randomBytes(4).toString("hex")}`;
 
-  // 1. Idempotency / deduplication by messageId
   const seen = db
     .prepare("SELECT message_id FROM seen_messages WHERE message_id = ?")
     .get(msg.messageId);
@@ -99,7 +97,6 @@ export async function runPipeline(
     now.toISOString()
   );
 
-  // 2. Sanitise inbound text (defends against Trap Pack payloads in emails/messages)
   const sanitised = sanitiseExternalData(msg.text);
   const controller = registerRunController(runId);
 
@@ -135,9 +132,14 @@ export async function runPipeline(
   }
 
   try {
-    // 3. Parse intent
+    // Never fall back to raw unsanitised msg.text when all content was quarantined
+    if (!sanitised.clean && sanitised.suspicions.length > 0) {
+      const reply = `Blocked: entire message was quarantined as suspicious (${sanitised.suspicions.join(", ")}). No action taken.`;
+      return finishRun(db, runId, "quarantined", "completed", reply, opts.traceDir, sanitised.suspicions);
+    }
+
     if (isRunKilled(db, runId)) throw new Error("killed_by_user");
-    const parsed: ParsedIntent = await parseIntent(sanitised.clean || msg.text, controller.signal, now);
+    const parsed: ParsedIntent = await parseIntent(sanitised.clean, controller.signal, now);
     db.prepare("UPDATE runs SET intent = ? WHERE id = ?").run(parsed.intent, runId);
 
     appendAuditEvent(
@@ -156,7 +158,6 @@ export async function runPipeline(
       await sleepAbortable(opts.onStepDelayMs, controller.signal);
     }
 
-    // 4. Policy check
     if (isRunKilled(db, runId)) throw new Error("killed_by_user");
     const toolName =
       parsed.intent === "triage_renewal"
@@ -201,11 +202,16 @@ export async function runPipeline(
       return { runId, status, intent: parsed.intent, reply: `Blocked by policy: ${decision.reason}`, suspicions: sanitised.suspicions };
     }
 
-    // 5. Execute allow-listed workflow
     if (isRunKilled(db, runId)) throw new Error("killed_by_user");
 
     if (parsed.intent === "cancel_run") {
       const targetRunId = String(parsed.params.runId || "");
+      const ownerRow = db.prepare("SELECT user_id FROM runs WHERE id = ?").get(targetRunId) as
+        | { user_id: string }
+        | undefined;
+      if (!ownerRow || ownerRow.user_id !== userId) {
+        return finishRun(db, runId, parsed.intent, "completed", `No run found for ${targetRunId}.`, opts.traceDir, sanitised.suspicions);
+      }
       triggerKill(db, targetRunId);
       const reply = `Kill switch activated for run ${targetRunId}.`;
       return finishRun(db, runId, parsed.intent, "completed", reply, opts.traceDir, sanitised.suspicions);
@@ -213,6 +219,12 @@ export async function runPipeline(
 
     if (parsed.intent === "check_status") {
       const targetRunId = String(parsed.params.runId || runId);
+      const ownerRow = db.prepare("SELECT user_id FROM runs WHERE id = ?").get(targetRunId) as
+        | { user_id: string }
+        | undefined;
+      if (!ownerRow || ownerRow.user_id !== userId) {
+        return finishRun(db, runId, parsed.intent, "completed", `No trace found for ${targetRunId}.`, opts.traceDir, sanitised.suspicions);
+      }
       const evs = getRunEvents(db, targetRunId);
       const reply =
         evs.length === 0
@@ -221,12 +233,60 @@ export async function runPipeline(
       return finishRun(db, runId, parsed.intent, "completed", reply, opts.traceDir, sanitised.suspicions);
     }
 
+    if (parsed.intent === "approve_action") {
+      const approvalId = String(parsed.params.approvalId || "");
+      const apr = db
+        .prepare("SELECT id, run_id, user_id, action, used FROM approvals WHERE id = ? AND user_id = ?")
+        .get(approvalId, userId) as
+        | { id: string; run_id: string; user_id: string; action: string; used: number }
+        | undefined;
+
+      if (!apr || apr.used) {
+        return finishRun(db, runId, parsed.intent, "completed", `Approval ${approvalId} is invalid or already used.`, opts.traceDir, sanitised.suspicions);
+      }
+
+      const gate = evaluatePolicy({
+        runId: apr.run_id,
+        userId,
+        intent: "triage_renewal",
+        estimatedCostUsd: 0.001,
+        toolName: apr.action,
+        risk: "irreversible",
+        rawArgs: { approvalId },
+        killed: isRunKilled(db, apr.run_id),
+        activeApproval: {
+          id: apr.id,
+          runId: apr.run_id,
+          userId: apr.user_id,
+          action: apr.action,
+          used: Boolean(apr.used),
+        },
+      });
+      if (!gate.allowed) {
+        return finishRun(db, runId, parsed.intent, "failed", `Approval denied: ${gate.reason}`, opts.traceDir, sanitised.suspicions);
+      }
+      db.prepare("UPDATE approvals SET used = 1 WHERE id = ?").run(apr.id);
+      return finishRun(
+        db,
+        runId,
+        parsed.intent,
+        "completed",
+        `Approved and executed '${apr.action}' for run ${apr.run_id} (single-use token ${apr.id} consumed).`,
+        opts.traceDir,
+        sanitised.suspicions
+      );
+    }
+
     if (parsed.intent === "schedule_reminder") {
       const title = String(parsed.params.title || "Scheduled Reminder");
       const locationLabel = parsed.params.locationLabel ? String(parsed.params.locationLabel) : null;
-      const eventAt = String(parsed.params.eventAt || new Date(now.getTime() + 3600_000).toISOString());
-      const notifyBeforeMins = Number(parsed.params.notifyBeforeMinutes ?? 30);
-      const notifyAt = new Date(new Date(eventAt).getTime() - notifyBeforeMins * 60_000).toISOString();
+      const rawEventAt = String(parsed.params.eventAt || "");
+      const parsedMs = Date.parse(rawEventAt);
+      const eventMs = Number.isFinite(parsedMs) ? parsedMs : now.getTime() + 3600_000;
+      const rawNotifyMins = Number(parsed.params.notifyBeforeMinutes ?? 30);
+      const notifyBeforeMins = Number.isFinite(rawNotifyMins) && rawNotifyMins >= 0 ? rawNotifyMins : 30;
+      const eventAt = new Date(eventMs).toISOString();
+      const notifyAt = new Date(eventMs - notifyBeforeMins * 60_000).toISOString();
       const reminderId = `rem-${randomBytes(4).toString("hex")}`;
 
       mkdirSync(artifactDir, { recursive: true });
@@ -252,7 +312,7 @@ export async function runPipeline(
 
       const reply = `Scheduled "${title}" for ${eventAt}. Created calendar file (${reminderId}.ics) and set a proactive T-${notifyBeforeMins}m alert (${notifyAt}) to check weather and directions. Run ${runId}.`;
       return {
-        ...(finishRun(db, runId, parsed.intent, "completed", reply, opts.traceDir, sanitised.suspicions)),
+        ...finishRun(db, runId, parsed.intent, "completed", reply, opts.traceDir, sanitised.suspicions),
         icsPath,
         reminderId,
       };
