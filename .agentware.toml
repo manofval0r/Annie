@@ -1,0 +1,5 @@
+track = "Life Admin"
+name = "Annie"
+pitch = "Text one message on Web, WhatsApp, or Telegram—Annie schedules it, wakes up 30 minutes before departure with live weather and OSRM directions, triages renewals, and runs behind code-enforced guardrails, a live monitor, a kill switch, and a replayable SHA-256 audit log."
+license = "MIT"
+repo = "https://github.com/manofval0r/Annie"

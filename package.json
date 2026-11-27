@@ -1,0 +1,29 @@
+{
+  "name": "annie",
+  "version": "0.1.0",
+  "description": "Annie — A text-first, proactive Life Admin personal agent for Agentware 2026",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "replay": "tsx src/cli/replay.ts",
+    "trap": "tsx tests/trap-pack/runner.ts",
+    "msg": "tsx src/channels/mock-cli.ts"
+  },
+  "dependencies": {
+    "better-auth": "^1.2.0",
+    "hono": "^4.7.5",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^1.13.8",
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}
