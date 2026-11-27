@@ -8,6 +8,7 @@ import { subscribeAuditEvents, type StoredAuditEvent } from "./core/audit.js";
 import { tickHeartbeat, type HeartbeatDeps } from "./core/heartbeat.js";
 import { triggerKill } from "./core/kill.js";
 import { runPipeline } from "./core/orchestrator.js";
+import { triggerVoiceReminder } from "./tools/telnyx-voice.js";
 import { ChannelSchema, NormalizedMessageSchema } from "./core/types.js";
 
 const SAFE_ICS_RE = /^rem-[a-f0-9]+\.ics$/;
@@ -142,6 +143,14 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
     }
     const res = await tickHeartbeat(db, defaultHeartbeatDeps, now);
     return c.json({ ...res, alerts: proactiveAlerts.slice(0, 5) });
+  });
+
+  app.post("/api/voice-escalate", async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as { toNumber?: string; message?: string };
+    const message = String(body.message || "").trim();
+    if (!message) return c.json({ error: "message is required" }, 400);
+    const result = await triggerVoiceReminder({ toNumber: body.toNumber, message });
+    return c.json(result);
   });
 
   return app;

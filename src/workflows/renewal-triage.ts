@@ -45,6 +45,17 @@ export function analyzeRenewalNotice(cleanText: string): RenewalAnalysis {
   const fromTo = cleanText.match(/from\s+(?:EUR|USD|GBP|[€$£])?\s*(\d+(?:\.\d{1,2})?)\s+to\s+(?:EUR|USD|GBP|[€$£])?\s*(\d+(?:\.\d{1,2})?)/i);
   const previousAmount = fromTo ? Number(fromTo[1]) : amounts[0];
   const newAmount = fromTo ? Number(fromTo[2]) : amounts[1];
+
+  if (!Number.isFinite(previousAmount) || previousAmount <= 0 || !Number.isFinite(newAmount) || newAmount <= 0) {
+    return {
+      currency,
+      newAmount: Number.isFinite(newAmount) && newAmount > 0 ? newAmount : null,
+      previousAmount: null,
+      percentChange: null,
+      recommendation: "Could not compute a reliable price change from the notice; no payment or external action taken.",
+    };
+  }
+
   const percentChange = Number((((newAmount - previousAmount) / previousAmount) * 100).toFixed(1));
 
   const recommendation =

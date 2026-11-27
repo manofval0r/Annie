@@ -4,7 +4,8 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - DATABASE_URL=/app/data/annie.db
     volumes:
