@@ -2,15 +2,17 @@ import { describe, it, expect } from "vitest";
 import { evaluatePolicy, isUrlAllowed } from "../../src/core/policy.js";
 
 describe("Code-Enforced Policy Chokepoint", () => {
-  it("blocks private IP and metadata SSRF targets", () => {
+  it("blocks private IP, IPv6, HTTP downgrade, and metadata SSRF targets", () => {
     expect(isUrlAllowed("http://127.0.0.1:8080/admin").allowed).toBe(false);
-    expect(isUrlAllowed("http://169.254.169.254/latest/meta-data/").allowed).toBe(false);
-    expect(isUrlAllowed("http://10.0.0.1/internal").allowed).toBe(false);
-    expect(isUrlAllowed("http://localhost:3000/secret").allowed).toBe(false);
+    expect(isUrlAllowed("https://[::1]/admin").reason).toContain("SSRF blocked");
+    expect(isUrlAllowed("https://[fd00::1]/internal").reason).toContain("SSRF blocked");
+    expect(isUrlAllowed("http://api.open-meteo.com/v1/forecast").allowed).toBe(false);
+    expect(isUrlAllowed("file:///etc/passwd").allowed).toBe(false);
+    expect(isUrlAllowed("https://169.254.169.254/latest/meta-data/").allowed).toBe(false);
     expect(isUrlAllowed("https://evil-attacker.example.com/exfil").allowed).toBe(false);
   });
 
-  it("allows static allow-listed external API domains", () => {
+  it("allows static allow-listed external HTTPS API domains", () => {
     expect(isUrlAllowed("https://router.project-osrm.org/route/v1/driving/0,0;1,1").allowed).toBe(true);
     expect(isUrlAllowed("https://api.open-meteo.com/v1/forecast").allowed).toBe(true);
     expect(isUrlAllowed("https://ntfy.sh/annie-demo").allowed).toBe(true);
@@ -32,8 +34,36 @@ describe("Code-Enforced Policy Chokepoint", () => {
     expect(decision.reason).toContain("ALLOW_PAYMENTS=false");
   });
 
-  it("blocks irreversible actions without a matching single-use approval", () => {
-    const denied = evaluatePolicy({
+  it("fails closed on NaN or excessive cost estimates", () => {
+    const nanDecision = evaluatePolicy({
+      runId: "run-cost",
+      userId: "usr-1",
+      intent: "schedule_reminder",
+      estimatedCostUsd: Number.NaN,
+      toolName: "osrm_route",
+      risk: "read",
+      rawArgs: {},
+      killed: false,
+      activeApproval: null,
+    });
+    expect(nanDecision.allowed).toBe(false);
+
+    const overCap = evaluatePolicy({
+      runId: "run-cost-2",
+      userId: "usr-1",
+      intent: "schedule_reminder",
+      estimatedCostUsd: 0.05,
+      toolName: "osrm_route",
+      risk: "read",
+      rawArgs: {},
+      killed: false,
+      activeApproval: null,
+    });
+    expect(overCap.allowed).toBe(false);
+  });
+
+  it("blocks irreversible actions without a runId+userId-bound single-use approval", () => {
+    const wrongUser = evaluatePolicy({
       runId: "run-2",
       userId: "usr-1",
       intent: "triage_renewal",
@@ -42,10 +72,10 @@ describe("Code-Enforced Policy Chokepoint", () => {
       risk: "irreversible",
       rawArgs: { to: "vendor@example.com" },
       killed: false,
-      activeApproval: null,
+      activeApproval: { id: "apr-1", runId: "run-2", userId: "usr-other", action: "send_external_email", used: false },
     });
-    expect(denied.allowed).toBe(false);
-    expect(denied.requiresApproval).toBe(true);
+    expect(wrongUser.allowed).toBe(false);
+    expect(wrongUser.requiresApproval).toBe(true);
 
     const approved = evaluatePolicy({
       runId: "run-2",
@@ -56,7 +86,7 @@ describe("Code-Enforced Policy Chokepoint", () => {
       risk: "irreversible",
       rawArgs: { to: "vendor@example.com" },
       killed: false,
-      activeApproval: { id: "apr-1", action: "send_external_email", used: false },
+      activeApproval: { id: "apr-1", runId: "run-2", userId: "usr-1", action: "send_external_email", used: false },
     });
     expect(approved.allowed).toBe(true);
   });

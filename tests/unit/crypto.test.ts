@@ -18,10 +18,12 @@ describe("AES-256-GCM Token Vault Crypto", () => {
     expect(c1).not.toBe(c2);
   });
 
-  it("throws on tampered ciphertext or wrong key", () => {
+  it("throws on tampered ciphertext, truncated GCM tag, or wrong key", () => {
     const cipher = encryptSecret("secret-123", testKey);
     const tampered = cipher.slice(0, -4) + "ffff";
     expect(() => decryptSecret(tampered, testKey)).toThrow();
+    const [ivHex, tagHex, cipherHex] = cipher.split(":");
+    expect(() => decryptSecret(`${ivHex}:${tagHex.slice(0, 8)}:${cipherHex}`, testKey)).toThrow();
     const wrongKey = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     expect(() => decryptSecret(cipher, wrongKey)).toThrow();
   });

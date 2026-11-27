@@ -4,6 +4,9 @@
   "description": "Annie — A text-first, proactive Life Admin personal agent for Agentware 2026",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",

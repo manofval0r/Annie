@@ -13,6 +13,6 @@
 6. **Audit & Monitor (`src/core/audit.ts`, `src/monitor/`):** Append-only SHA-256 hash-chained event log + live SSE `/monitor` stream + `npm run replay`.
 
 ## Models & Stack
-* **Runtime:** Node 22, TypeScript, Hono, SQLite (`better-sqlite3`) + Drizzle ORM (portable to Cloudflare Workers + D1).
+* **Runtime:** Node 22.5+ (Node 24 tested), TypeScript, Hono, built-in `node:sqlite` (portable to Cloudflare Workers + D1).
 * **LLM Interface:** OpenAI-compatible structured JSON output (`mock` zero-key default, `ollama` `qwen3:4b`, `groq`, `gemini`, `workers-ai`).
 * **Design References (Patterns Only, Not Forked):** `OpenClaw` (heartbeat/cron), `Hermes Agent` (user preferences), `Vellum` (credential isolation + proactive alerts), `biscotti` (secrets gate).

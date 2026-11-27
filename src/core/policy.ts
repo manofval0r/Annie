@@ -42,7 +42,7 @@ const PRIVATE_IP_PATTERNS = [
   /^172\.(1[6-9]|2\d|3[01])\./,
   /^0\.0\.0\.0$/,
   /^::1$/,
-  /^fc00:/i,
+  /^f[cd][0-9a-f]{2}:/i,
   /^fe80:/i,
 ];
 
@@ -57,7 +57,13 @@ export interface PolicyContext {
   risk: ToolRisk;
   rawArgs: Record<string, unknown>;
   killed: boolean;
-  activeApproval: { id: string; action: string; used: boolean } | null;
+  activeApproval: {
+    id: string;
+    runId: string;
+    userId: string;
+    action: string;
+    used: boolean;
+  } | null;
 }
 
 export function isUrlAllowed(rawUrl: string): { allowed: boolean; reason: string } {
@@ -68,11 +74,11 @@ export function isUrlAllowed(rawUrl: string): { allowed: boolean; reason: string
     return { allowed: false, reason: "Invalid URL" };
   }
 
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-    return { allowed: false, reason: `Disallowed protocol: ${parsed.protocol}` };
+  if (parsed.protocol !== "https:") {
+    return { allowed: false, reason: `HTTPS required, got: ${parsed.protocol}` };
   }
 
-  const host = parsed.hostname.toLowerCase();
+  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (PRIVATE_IP_PATTERNS.some((re) => re.test(host))) {
     return { allowed: false, reason: `SSRF blocked private host: ${host}` };
   }
@@ -102,7 +108,11 @@ export function evaluatePolicy(ctx: PolicyContext): PolicyDecision {
     };
   }
 
-  const maxCost = Number(process.env.MAX_ESTIMATED_COST_USD || "0.01");
+  const rawMax = process.env.MAX_ESTIMATED_COST_USD ?? "0.01";
+  const maxCost = Number(rawMax);
+  if (!Number.isFinite(maxCost) || maxCost < 0 || !Number.isFinite(ctx.estimatedCostUsd) || ctx.estimatedCostUsd < 0) {
+    return { allowed: false, reason: "Invalid cost estimate or MAX_ESTIMATED_COST_USD" };
+  }
   if (ctx.estimatedCostUsd > maxCost) {
     return {
       allowed: false,
@@ -115,6 +125,8 @@ export function evaluatePolicy(ctx: PolicyContext): PolicyDecision {
     const validApproval =
       ctx.activeApproval &&
       !ctx.activeApproval.used &&
+      ctx.activeApproval.runId === ctx.runId &&
+      ctx.activeApproval.userId === ctx.userId &&
       ctx.activeApproval.action === ctx.toolName;
     if (!validApproval) {
       return {

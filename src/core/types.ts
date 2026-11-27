@@ -64,6 +64,7 @@ export interface ActionButton {
 
 export interface ChannelAdapter {
   channel: Channel;
-  normalize: (rawPayload: unknown) => NormalizedMessage;
+  verifySignature?: (headers: Headers, rawBody: string) => Promise<boolean> | boolean;
+  normalize: (rawPayload: unknown) => Promise<NormalizedMessage> | NormalizedMessage;
   sendReply: (senderId: string, text: string, buttons?: ActionButton[]) => Promise<void>;
 }

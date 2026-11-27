@@ -16,7 +16,8 @@ export function createDb(dbPath = process.env.DATABASE_URL || "./data/annie.db")
     );
     CREATE TABLE IF NOT EXISTS channel_identities (
       id TEXT PRIMARY KEY, channel TEXT NOT NULL, sender_id TEXT NOT NULL,
-      user_id TEXT NOT NULL, verified_at TEXT NOT NULL
+      user_id TEXT NOT NULL, verified_at TEXT NOT NULL,
+      UNIQUE(channel, sender_id)
     );
     CREATE TABLE IF NOT EXISTS link_codes (
       code TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL,
@@ -25,7 +26,8 @@ export function createDb(dbPath = process.env.DATABASE_URL || "./data/annie.db")
     CREATE TABLE IF NOT EXISTS oauth_connections (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, provider TEXT NOT NULL,
       encrypted_access_token TEXT NOT NULL, encrypted_refresh_token TEXT,
-      scopes TEXT NOT NULL, expires_at TEXT, created_at TEXT NOT NULL
+      scopes TEXT NOT NULL, expires_at TEXT, created_at TEXT NOT NULL,
+      UNIQUE(user_id, provider)
     );
     CREATE TABLE IF NOT EXISTS saved_places (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, label TEXT NOT NULL,
@@ -39,7 +41,8 @@ export function createDb(dbPath = process.env.DATABASE_URL || "./data/annie.db")
     CREATE TABLE IF NOT EXISTS events (
       id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, seq INTEGER NOT NULL,
       ts TEXT NOT NULL, actor TEXT NOT NULL, type TEXT NOT NULL, summary TEXT NOT NULL,
-      payload_hash TEXT NOT NULL, prev_hash TEXT NOT NULL, hash TEXT NOT NULL
+      payload_hash TEXT NOT NULL, prev_hash TEXT NOT NULL, hash TEXT NOT NULL,
+      UNIQUE(run_id, seq)
     );
     CREATE TABLE IF NOT EXISTS reminders (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL, run_id TEXT NOT NULL, title TEXT NOT NULL,
