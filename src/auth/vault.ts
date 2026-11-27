@@ -22,15 +22,16 @@ export function ensureUser(db: DatabaseSync, id: string, email: string, name: st
  * so a user logged into Web PWA can link Telegram/WhatsApp to the same userId.
  */
 export function generateLinkCode(db: DatabaseSync, userId: string, now = new Date()): string {
-  const digits = String(randomInt(100000, 999999));
-  const code = `LINK-${digits}`;
+  db.prepare("DELETE FROM link_codes WHERE expires_at < ?").run(now.toISOString());
   const expiresAt = new Date(now.getTime() + 10 * 60_000).toISOString();
-  db.prepare("INSERT INTO link_codes (code, user_id, expires_at, used) VALUES (?, ?, ?, 0)").run(
-    code,
-    userId,
-    expiresAt
-  );
-  return code;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = `LINK-${String(randomInt(100000, 1000000))}`;
+    const res = db
+      .prepare("INSERT OR IGNORE INTO link_codes (code, user_id, expires_at, used) VALUES (?, ?, ?, 0)")
+      .run(code, userId, expiresAt);
+    if (res.changes === 1) return code;
+  }
+  throw new Error("Failed to generate unique link code");
 }
 
 /**

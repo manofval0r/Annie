@@ -14,8 +14,8 @@
       --danger: #dc2626; --danger-soft: #fef2f2;
     }
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--canvas); color: var(--ink); min-height: 100dvh; display: flex; flex-direction: column; }
-    header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--canvas); color: var(--ink); height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+    header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
     .brand { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; }
     .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
     .btn { font-size: 13px; font-weight: 600; padding: 8px 12px; min-height: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); cursor: pointer; }
@@ -23,26 +23,26 @@
     .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
     .btn-kill { background: var(--danger); color: #fff; border-color: var(--danger); }
     main { flex: 1; display: grid; grid-template-columns: 260px 1fr 340px; min-height: 0; }
-    .pane { padding: 16px; border-right: 1px solid var(--border); min-width: 0; overflow-y: auto; }
+    .pane { padding: 16px; border-right: 1px solid var(--border); min-width: 0; min-height: 0; overflow-y: auto; }
     .pane:last-child { border-right: none; }
     .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; font-weight: 700; }
-    .chat-wrap { display: flex; flex-direction: column; height: 100%; }
+    .chat-wrap { display: flex; flex-direction: column; height: 100%; min-height: 0; }
     .messages { flex: 1; overflow-y: auto; padding-bottom: 12px; }
     .msg { padding: 10px 13px; border-radius: 10px; margin-bottom: 10px; font-size: 14px; line-height: 1.45; word-break: break-word; }
     .msg-user { background: var(--ink); color: #fff; margin-left: 32px; }
     .msg-annie { background: var(--surface); border: 1px solid var(--border); margin-right: 16px; }
     .msg-proactive { background: var(--accent-soft); border: 1px solid #a7f3d0; }
-    .composer { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .composer { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
     .composer input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
     .trace-item { font-family: Consolas, monospace; font-size: 11px; padding: 8px; background: var(--muted); border-radius: 6px; margin-bottom: 6px; border-left: 3px solid var(--accent); word-break: break-word; }
     .trace-item.warn { border-left-color: var(--danger); background: var(--danger-soft); }
     .conn-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
-    .pill { font-family: Consolas, monospace; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
-    .mobile-tabs { display: none; }
+    .pill { font-family: Consolas, monospace; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+    .mobile-tabs { display: none; flex-shrink: 0; }
     @media (max-width: 960px) {
-      main { display: block; }
-      .pane { display: none; border-right: none; height: calc(100dvh - 122px); }
-      .pane.active { display: block; }
+      main { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+      .pane { display: none; border-right: none; }
+      .pane.active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
       .mobile-tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--border); background: var(--surface); }
       .mobile-tabs button { border: none; background: transparent; min-height: 48px; font-weight: 600; color: var(--ink-muted); }
       .mobile-tabs button.active { color: var(--accent); border-top: 2px solid var(--accent); }
@@ -97,11 +97,11 @@
     const msgs = document.getElementById("messages");
     const traces = document.getElementById("trace-list");
 
-    function addMsg(text, cls = "msg-annie", extraHtml = "") {
+    function addMsg(text, cls = "msg-annie", extraNode = null) {
       const div = document.createElement("div");
       div.className = "msg " + cls;
       div.textContent = text;
-      if (extraHtml) div.insertAdjacentHTML("beforeend", extraHtml);
+      if (extraNode) div.appendChild(extraNode);
       msgs.appendChild(div);
       msgs.scrollTop = msgs.scrollHeight;
     }
@@ -111,6 +111,17 @@
       div.className = "trace-item" + (warn ? " warn" : "");
       div.textContent = text;
       traces.prepend(div);
+    }
+
+    async function postJson(url, body) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body ?? {}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      return data;
     }
 
     const sse = new EventSource("/monitor");
@@ -129,54 +140,91 @@
       if (!text) return;
       input.value = "";
       addMsg(text, "msg-user");
-      const res = await fetch("/message", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: "web", senderId: "web-sandbox", text }),
-      });
-      const data = await res.json();
-      lastRunId = data.runId || lastRunId;
-      const icsHtml = data.reminderId
-        ? `<div style="margin-top:8px;"><a class="pill" href="/artifacts/${data.reminderId}.ics" download>Download .ics</a></div>`
-        : "";
-      addMsg(data.reply || JSON.stringify(data), "msg-annie", icsHtml);
+      try {
+        const data = await postJson("/message", { channel: "web", senderId: "web-sandbox", text });
+        lastRunId = data.runId || lastRunId;
+        let extra = null;
+        if (data.reminderId) {
+          extra = document.createElement("div");
+          extra.style.marginTop = "8px";
+          const a = document.createElement("a");
+          a.className = "pill";
+          a.href = `/artifacts/${encodeURIComponent(data.reminderId)}.ics`;
+          a.download = "";
+          a.textContent = "Download .ics";
+          extra.appendChild(a);
+        }
+        addMsg(data.reply || JSON.stringify(data), "msg-annie", extra);
+      } catch (err) {
+        addMsg(`Request failed: ${err.message}`, "msg-annie");
+      }
     });
 
     document.getElementById("btn-sandbox").addEventListener("click", async () => {
-      const res = await fetch("/api/sandbox", { method: "POST" });
-      const data = await res.json();
-      const list = document.getElementById("connections-list");
-      list.innerHTML = data.connections
-        .map((c) => `<div class="conn-row"><span>${c.provider}</span><span class="pill">Linked</span></div>`)
-        .join("");
-      document.getElementById("link-code-box").textContent =
-        `Send ${data.linkCode} on Telegram/WhatsApp to share this vault (${data.userId}).`;
-      addMsg(`Judge Sandbox active (${data.userId}). Home + School saved; Gmail, Search Console & Treg linked.`, "msg-proactive");
+      try {
+        const data = await postJson("/api/sandbox", {});
+        const list = document.getElementById("connections-list");
+        list.textContent = "";
+        for (const c of data.connections || []) {
+          const row = document.createElement("div");
+          row.className = "conn-row";
+          const name = document.createElement("span");
+          name.textContent = String(c.provider);
+          const badge = document.createElement("span");
+          badge.className = "pill";
+          badge.textContent = "Linked";
+          row.append(name, badge);
+          list.appendChild(row);
+        }
+        document.getElementById("link-code-box").textContent =
+          `Send ${data.linkCode} on Telegram/WhatsApp to share this vault (${data.userId}).`;
+        addMsg(`Judge Sandbox active (${data.userId}). Home + School saved; Gmail, Search Console & Treg linked.`, "msg-proactive");
+      } catch (err) {
+        addMsg(`Sandbox error: ${err.message}`, "msg-annie");
+      }
     });
 
     document.getElementById("btn-tick").addEventListener("click", async () => {
-      const res = await fetch("/api/debug/tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-      const data = await res.json();
-      if (data.processed > 0 && data.alerts?.[0]) {
-        const a = data.alerts[0];
-        const mapBtn = a.buttons?.[0]?.url
-          ? `<div style="margin-top:8px;"><a class="btn btn-accent" style="text-decoration:none;display:inline-block;" href="${a.buttons[0].url}" target="_blank" rel="noopener">Get Directions</a></div>`
-          : "";
-        addMsg(`Proactive T-30m Alert: ${a.body}`, "msg-proactive", mapBtn);
-      } else {
-        addMsg("No scheduled reminders due yet. Ask Annie to remind you first!", "msg-annie");
+      try {
+        const data = await postJson("/api/debug/tick", {});
+        if (data.processed > 0 && data.alerts?.[0]) {
+          const a = data.alerts[0];
+          let extra = null;
+          const rawUrl = a.buttons?.[0]?.url;
+          if (rawUrl) {
+            try {
+              const parsed = new URL(rawUrl);
+              if (parsed.protocol === "https:") {
+                extra = document.createElement("div");
+                extra.style.marginTop = "8px";
+                const link = document.createElement("a");
+                link.className = "btn btn-accent";
+                link.style.cssText = "text-decoration:none;display:inline-block;";
+                link.href = parsed.toString();
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+                link.textContent = "Get Directions";
+                extra.appendChild(link);
+              }
+            } catch {}
+          }
+          addMsg(`Proactive T-30m Alert: ${a.body}`, "msg-proactive", extra);
+        } else {
+          addMsg("No scheduled reminders due yet. Ask Annie to remind you first!", "msg-annie");
+        }
+      } catch (err) {
+        addMsg(`Tick error: ${err.message}`, "msg-annie");
       }
     });
 
     document.getElementById("btn-kill").addEventListener("click", async () => {
       if (!lastRunId) return addMsg("No active runId to kill yet.", "msg-annie");
-      const res = await fetch(`/kill/${encodeURIComponent(lastRunId)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: "web", senderId: "web-sandbox" }),
-      });
-      const data = await res.json();
-      addTrace(`KILL SWITCH: ${JSON.stringify(data)}`, true);
+      try {
+        const data = await postJson(`/kill/${encodeURIComponent(lastRunId)}`, { channel: "web", senderId: "web-sandbox" });
+        addTrace(`KILL SWITCH: ${JSON.stringify(data)}`, true);
+      } catch (err) {
+        addTrace(`KILL SWITCH ERROR: ${err.message}`, true);
+      }
     });
 
     document.querySelectorAll(".mobile-tabs button").forEach((btn) => {

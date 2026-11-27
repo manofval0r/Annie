@@ -3,13 +3,7 @@ import { streamSSE } from "hono/streaming";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { z } from "zod";
-import {
-  enableJudgeSandbox,
-  generateLinkCode,
-  listOAuthConnections,
-  resolveChannelUserId,
-} from "./auth/vault.js";
+import { enableJudgeSandbox, resolveChannelUserId } from "./auth/vault.js";
 import { subscribeAuditEvents, type StoredAuditEvent } from "./core/audit.js";
 import { tickHeartbeat, type HeartbeatDeps } from "./core/heartbeat.js";
 import { triggerKill } from "./core/kill.js";
@@ -88,22 +82,28 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
 
   app.get("/monitor", (c) => {
     return streamSSE(c, async (stream) => {
-      await stream.writeSSE({ event: "connected", data: JSON.stringify({ ts: new Date().toISOString() }) });
-      const unsubscribe = subscribeAuditEvents((ev: StoredAuditEvent) => {
-        void stream.writeSSE({ event: "audit", data: JSON.stringify(ev) });
-      });
-      await new Promise<void>((resolve) => {
-        c.req.raw.signal.addEventListener("abort", () => {
-          unsubscribe();
-          resolve();
+      if (c.req.raw.signal.aborted) return;
+      let unsubscribe: () => void = () => {};
+      try {
+        await stream.writeSSE({ event: "connected", data: JSON.stringify({ ts: new Date().toISOString() }) });
+        unsubscribe = subscribeAuditEvents((ev: StoredAuditEvent) => {
+          stream.writeSSE({ event: "audit", data: JSON.stringify(ev) }).catch(() => unsubscribe());
         });
-      });
+        await new Promise<void>((resolve) => {
+          stream.onAbort(() => {
+            unsubscribe();
+            resolve();
+          });
+        });
+      } finally {
+        unsubscribe();
+      }
     });
   });
 
   app.post("/kill/:runId", async (c) => {
     const runId = c.req.param("runId");
-    const body = await c.req.json().catch(() => ({})) as { channel?: string; senderId?: string };
+    const body = (await c.req.json().catch(() => ({}))) as { channel?: string; senderId?: string };
     const channelParsed = ChannelSchema.safeParse(body.channel ?? "web");
     const senderId = body.senderId ?? "web-sandbox";
     const callerUserId = resolveChannelUserId(db, channelParsed.success ? channelParsed.data : "web", senderId);
@@ -129,29 +129,13 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
   });
 
   app.post("/api/sandbox", async (c) => {
-    const body = await c.req.json().catch(() => ({})) as { senderId?: string };
+    const body = (await c.req.json().catch(() => ({}))) as { senderId?: string };
     const data = enableJudgeSandbox(db, body.senderId || "web-sandbox");
     return c.json(data);
   });
 
-  app.post("/api/link-code", async (c) => {
-    const schema = z.object({ channel: ChannelSchema.default("web"), senderId: z.string().min(1) });
-    const parsed = schema.safeParse(await c.req.json().catch(() => ({})));
-    if (!parsed.success) return c.json({ error: "Invalid request" }, 400);
-    const userId = resolveChannelUserId(db, parsed.data.channel, parsed.data.senderId);
-    return c.json({ userId, code: generateLinkCode(db, userId) });
-  });
-
-  app.get("/api/connections", (c) => {
-    const senderId = c.req.query("senderId") || "web-sandbox";
-    const userId = resolveChannelUserId(db, "web", senderId);
-    return c.json({ userId, connections: listOAuthConnections(db, userId) });
-  });
-
-  app.get("/api/alerts", (c) => c.json({ alerts: proactiveAlerts }));
-
   app.post("/api/debug/tick", async (c) => {
-    const body = await c.req.json().catch(() => ({})) as { nowOverride?: string };
+    const body = (await c.req.json().catch(() => ({}))) as { nowOverride?: string };
     const now = body.nowOverride ? new Date(body.nowOverride) : new Date(Date.now() + 48 * 3600_000);
     if (!Number.isFinite(now.getTime())) {
       return c.json({ error: "Invalid nowOverride timestamp" }, 400);

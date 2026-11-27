@@ -2,7 +2,14 @@ self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (event) => {
-  const data = event.data ? event.data.json() : { title: "Annie Reminder", body: "Check your upcoming event." };
+  let data = { title: "Annie Reminder", body: "Check your upcoming event.", url: "/" };
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch {
+      data.body = event.data.text() || data.body;
+    }
+  }
   event.waitUntil(
     self.registration.showNotification(data.title || "Annie", {
       body: data.body || "",
