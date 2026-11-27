@@ -7,6 +7,7 @@ import { clearRunController, isRunKilled, registerRunController, triggerKill } f
 import { evaluatePolicy } from "./policy.js";
 import { sanitiseExternalData } from "./sanitise.js";
 import { parseIntent } from "../llm/provider.js";
+import { redeemLinkCode, resolveChannelUserId } from "../auth/vault.js";
 import type { NormalizedMessage, ParsedIntent } from "./types.js";
 
 export interface RunResult {
@@ -48,13 +49,6 @@ function buildMinimalIcs(id: string, title: string, eventAtIso: string, location
     .join("\r\n");
 }
 
-function resolveUserId(db: DatabaseSync, msg: NormalizedMessage): string {
-  const row = db
-    .prepare("SELECT user_id FROM channel_identities WHERE channel = ? AND sender_id = ?")
-    .get(msg.channel, msg.senderId) as { user_id: string } | undefined;
-  return row ? row.user_id : `${msg.channel}:${msg.senderId}`;
-}
-
 async function sleepAbortable(ms: number, signal: AbortSignal): Promise<void> {
   if (ms <= 0) return;
   await new Promise<void>((resolve, reject) => {
@@ -77,7 +71,7 @@ export async function runPipeline(
 ): Promise<RunResult> {
   const now = opts.now ?? new Date();
   const artifactDir = opts.artifactDir ?? "./data/artifacts";
-  const userId = resolveUserId(db, msg);
+  const userId = resolveChannelUserId(db, msg.channel, msg.senderId);
   const runId = `r-${randomBytes(4).toString("hex")}`;
 
   const seen = db
@@ -203,6 +197,15 @@ export async function runPipeline(
     }
 
     if (isRunKilled(db, runId)) throw new Error("killed_by_user");
+
+    if (parsed.intent === "link_channel") {
+      const code = String(parsed.params.code || "");
+      const res = redeemLinkCode(db, msg.channel, msg.senderId, code, now);
+      const reply = res.linked
+        ? `Linked ${msg.channel} to your unified Annie account (${res.userId}). Your connected integrations are now shared here.`
+        : `Could not link channel: ${res.reason}.`;
+      return finishRun(db, runId, parsed.intent, "completed", reply, opts.traceDir, sanitised.suspicions);
+    }
 
     if (parsed.intent === "cancel_run") {
       const targetRunId = String(parsed.params.runId || "");
