@@ -1,0 +1,23 @@
+name = "annie-agent"
+main = "src/worker.ts"
+compatibility_date = "2026-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+LLM_PROVIDER = "mock"
+ALLOW_PAYMENTS = "false"
+MAX_ESTIMATED_COST_USD = "0.01"
+
+[triggers]
+# Proactive T-30m heartbeat every 5 minutes (Cloudflare Workers Free Tier)
+crons = ["*/5 * * * *"]
+
+# Optional Cloudflare D1 & R2 bindings (uncomment after running `wrangler d1 create annie-db`)
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "annie-db"
+# database_id = "REPLACE_WITH_D1_ID"
+#
+# [[r2_buckets]]
+# binding = "ARTIFACTS"
+# bucket_name = "annie-artifacts"

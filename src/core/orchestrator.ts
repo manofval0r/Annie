@@ -8,6 +8,7 @@ import { evaluatePolicy } from "./policy.js";
 import { sanitiseExternalData } from "./sanitise.js";
 import { parseIntent } from "../llm/provider.js";
 import { redeemLinkCode, resolveChannelUserId } from "../auth/vault.js";
+import { analyzeRenewalNotice } from "../workflows/renewal-triage.js";
 import type { NormalizedMessage, ParsedIntent } from "./types.js";
 
 export interface RunResult {
@@ -322,16 +323,18 @@ export async function runPipeline(
     }
 
     if (parsed.intent === "triage_renewal") {
+      const analysis = analyzeRenewalNotice(sanitised.clean);
       const approvalId = `apr-${randomBytes(3).toString("hex")}`;
       db.prepare(
         `INSERT INTO approvals (id, run_id, user_id, action, amount_usd, used, created_at)
          VALUES (?, ?, ?, 'send_external_email', 0, 0, ?)`
       ).run(approvalId, runId, userId, now.toISOString());
 
-      const reply =
+      const quarantineNote =
         sanitised.suspicions.length > 0
-          ? `Reviewed notice safely (quarantined ${sanitised.suspicions.length} hostile instruction(s)). No funds moved and no external email sent. Reply "YES ${approvalId}" if you want me to proceed with a switch inquiry.`
-          : `Reviewed renewal notice. No irreversible action taken. Reply "YES ${approvalId}" to approve sending a switch inquiry.`;
+          ? `Quarantined ${sanitised.suspicions.length} hostile instruction(s). `
+          : "";
+      const reply = `${quarantineNote}${analysis.recommendation} Reply "YES ${approvalId}" to approve sending a switch inquiry.`;
       return finishRun(db, runId, parsed.intent, "awaiting_approval", reply, opts.traceDir, sanitised.suspicions);
     }
 

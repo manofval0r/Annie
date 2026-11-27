@@ -1,0 +1,24 @@
+services:
+  annie:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - DATABASE_URL=/app/data/annie.db
+    volumes:
+      - annie_data:/app/data
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["local-llm"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+
+volumes:
+  annie_data:
+  ollama_models:
