@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#047857">
+  <title>Annie — Proactive Personal Agent</title>
+  <style>
+    :root {
+      --canvas: #faf9f6; --surface: #ffffff; --muted: #f1f5f9;
+      --ink: #111827; --ink-muted: #475569; --border: #e2e8f0;
+      --accent: #047857; --accent-soft: #ecfdf5;
+      --danger: #dc2626; --danger-soft: #fef2f2;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", system-ui, sans-serif; background: var(--canvas); color: var(--ink); min-height: 100dvh; display: flex; flex-direction: column; }
+    header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .brand { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+    .btn { font-size: 13px; font-weight: 600; padding: 8px 12px; min-height: 40px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--ink); cursor: pointer; }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .btn-accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-kill { background: var(--danger); color: #fff; border-color: var(--danger); }
+    main { flex: 1; display: grid; grid-template-columns: 260px 1fr 340px; min-height: 0; }
+    .pane { padding: 16px; border-right: 1px solid var(--border); min-width: 0; overflow-y: auto; }
+    .pane:last-child { border-right: none; }
+    .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-muted); margin: 0 0 10px; font-weight: 700; }
+    .chat-wrap { display: flex; flex-direction: column; height: 100%; }
+    .messages { flex: 1; overflow-y: auto; padding-bottom: 12px; }
+    .msg { padding: 10px 13px; border-radius: 10px; margin-bottom: 10px; font-size: 14px; line-height: 1.45; word-break: break-word; }
+    .msg-user { background: var(--ink); color: #fff; margin-left: 32px; }
+    .msg-annie { background: var(--surface); border: 1px solid var(--border); margin-right: 16px; }
+    .msg-proactive { background: var(--accent-soft); border: 1px solid #a7f3d0; }
+    .composer { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .composer input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+    .trace-item { font-family: Consolas, monospace; font-size: 11px; padding: 8px; background: var(--muted); border-radius: 6px; margin-bottom: 6px; border-left: 3px solid var(--accent); word-break: break-word; }
+    .trace-item.warn { border-left-color: var(--danger); background: var(--danger-soft); }
+    .conn-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .pill { font-family: Consolas, monospace; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+    .mobile-tabs { display: none; }
+    @media (max-width: 960px) {
+      main { display: block; }
+      .pane { display: none; border-right: none; height: calc(100dvh - 122px); }
+      .pane.active { display: block; }
+      .mobile-tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--border); background: var(--surface); }
+      .mobile-tabs button { border: none; background: transparent; min-height: 48px; font-weight: 600; color: var(--ink-muted); }
+      .mobile-tabs button.active { color: var(--accent); border-top: 2px solid var(--accent); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="dot"></span> Annie</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn" id="btn-sandbox">1-Click Judge Sandbox</button>
+      <button class="btn" id="btn-tick">Simulate T-30m Tick</button>
+      <button class="btn btn-kill" id="btn-kill">Kill Active Run</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="pane" id="pane-vault">
+      <p class="section-title">Shared Auth Vault</p>
+      <div id="connections-list"><p style="font-size:13px;color:#475569;">Click "1-Click Judge Sandbox" to seed Gmail, Calendar, Search Console &amp; Treg.</p></div>
+      <p class="section-title" style="margin-top:16px;">Cross-Channel Link Code</p>
+      <div class="trace-item" id="link-code-box">Not generated yet.</div>
+    </section>
+
+    <section class="pane active" id="pane-chat">
+      <div class="chat-wrap">
+        <div class="messages" id="messages">
+          <div class="msg msg-annie">Hi, I'm <strong>Annie</strong>. Try: <code>Remind me to go to school Tuesday 6pm</code> or click <strong>1-Click Judge Sandbox</strong>.</div>
+        </div>
+        <form class="composer" id="chat-form">
+          <input id="chat-input" type="text" placeholder="Ask Annie anything..." autocomplete="off" required />
+          <button class="btn btn-accent" type="submit">Send</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="pane" id="pane-monitor">
+      <p class="section-title">Live Monitor (SSE) &amp; Hash-Chain Audit</p>
+      <div id="trace-list"><div class="trace-item">Connecting to /monitor SSE...</div></div>
+    </section>
+  </main>
+
+  <nav class="mobile-tabs">
+    <button class="active" data-tab="pane-chat">Chat</button>
+    <button data-tab="pane-vault">Vault</button>
+    <button data-tab="pane-monitor">Monitor</button>
+  </nav>
+
+  <script>
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+    let lastRunId = null;
+    const msgs = document.getElementById("messages");
+    const traces = document.getElementById("trace-list");
+
+    function addMsg(text, cls = "msg-annie", extraHtml = "") {
+      const div = document.createElement("div");
+      div.className = "msg " + cls;
+      div.textContent = text;
+      if (extraHtml) div.insertAdjacentHTML("beforeend", extraHtml);
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function addTrace(text, warn = false) {
+      const div = document.createElement("div");
+      div.className = "trace-item" + (warn ? " warn" : "");
+      div.textContent = text;
+      traces.prepend(div);
+    }
+
+    const sse = new EventSource("/monitor");
+    sse.addEventListener("connected", () => addTrace("SSE connected — live audit active"));
+    sse.addEventListener("audit", (e) => {
+      const ev = JSON.parse(e.data);
+      lastRunId = ev.runId;
+      const warn = ev.type.includes("quarantine") || ev.type.includes("killed");
+      addTrace(`[#${ev.seq}] ${ev.runId} · ${ev.type}: ${ev.summary}`, warn);
+    });
+
+    document.getElementById("chat-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("chat-input");
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      addMsg(text, "msg-user");
+      const res = await fetch("/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "web", senderId: "web-sandbox", text }),
+      });
+      const data = await res.json();
+      lastRunId = data.runId || lastRunId;
+      const icsHtml = data.reminderId
+        ? `<div style="margin-top:8px;"><a class="pill" href="/artifacts/${data.reminderId}.ics" download>Download .ics</a></div>`
+        : "";
+      addMsg(data.reply || JSON.stringify(data), "msg-annie", icsHtml);
+    });
+
+    document.getElementById("btn-sandbox").addEventListener("click", async () => {
+      const res = await fetch("/api/sandbox", { method: "POST" });
+      const data = await res.json();
+      const list = document.getElementById("connections-list");
+      list.innerHTML = data.connections
+        .map((c) => `<div class="conn-row"><span>${c.provider}</span><span class="pill">Linked</span></div>`)
+        .join("");
+      document.getElementById("link-code-box").textContent =
+        `Send ${data.linkCode} on Telegram/WhatsApp to share this vault (${data.userId}).`;
+      addMsg(`Judge Sandbox active (${data.userId}). Home + School saved; Gmail, Search Console & Treg linked.`, "msg-proactive");
+    });
+
+    document.getElementById("btn-tick").addEventListener("click", async () => {
+      const res = await fetch("/api/debug/tick", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const data = await res.json();
+      if (data.processed > 0 && data.alerts?.[0]) {
+        const a = data.alerts[0];
+        const mapBtn = a.buttons?.[0]?.url
+          ? `<div style="margin-top:8px;"><a class="btn btn-accent" style="text-decoration:none;display:inline-block;" href="${a.buttons[0].url}" target="_blank" rel="noopener">Get Directions</a></div>`
+          : "";
+        addMsg(`Proactive T-30m Alert: ${a.body}`, "msg-proactive", mapBtn);
+      } else {
+        addMsg("No scheduled reminders due yet. Ask Annie to remind you first!", "msg-annie");
+      }
+    });
+
+    document.getElementById("btn-kill").addEventListener("click", async () => {
+      if (!lastRunId) return addMsg("No active runId to kill yet.", "msg-annie");
+      const res = await fetch(`/kill/${encodeURIComponent(lastRunId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "web", senderId: "web-sandbox" }),
+      });
+      const data = await res.json();
+      addTrace(`KILL SWITCH: ${JSON.stringify(data)}`, true);
+    });
+
+    document.querySelectorAll(".mobile-tabs button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mobile-tabs button").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".pane").forEach((p) => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.tab).classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>
