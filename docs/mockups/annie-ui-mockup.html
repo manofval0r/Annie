@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Annie — Responsive UI Mockup Audit (375px / 768px / 1280px)</title>
+  <style>
+    :root {
+      --canvas: #faf9f6;
+      --surface: #ffffff;
+      --surface-muted: #f1f5f9;
+      --ink: #111827;
+      --ink-muted: #475569;
+      --border: #e2e8f0;
+      --accent: #047857;
+      --accent-soft: #ecfdf5;
+      --danger: #dc2626;
+      --danger-soft: #fef2f2;
+      --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+      --font-mono: "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background: #e5e7eb;
+      color: var(--ink);
+      padding: 24px;
+    }
+    .toolbar {
+      max-width: 1440px;
+      margin: 0 auto 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      padding: 14px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .toolbar h1 { margin: 0; font-size: 16px; letter-spacing: -0.01em; }
+    .pill {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid #a7f3d0;
+    }
+    .frames {
+      max-width: 1440px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    .frame-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .frame-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--ink-muted);
+      font-weight: 600;
+    }
+    .device {
+      background: var(--canvas);
+      border: 2px solid #cbd5e1;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+    .mobile { width: 375px; }
+    .tablet { width: 768px; max-width: 100%; }
+    .desktop { width: 1280px; max-width: 100%; }
+
+    /* Shared App Layout Preview */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+    .brand { font-weight: 700; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+    .btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 12px;
+      min-height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+    }
+    .btn-kill {
+      background: var(--danger);
+      color: #fff;
+      border-color: var(--danger);
+    }
+    .btn-accent {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .grid-desktop {
+      display: grid;
+      grid-template-columns: 240px 1fr 340px;
+      min-height: 460px;
+    }
+    .grid-tablet {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      min-height: 420px;
+    }
+    .grid-mobile {
+      display: flex;
+      flex-direction: column;
+      min-height: 520px;
+    }
+    .pane {
+      padding: 14px;
+      border-right: 1px solid var(--border);
+      min-width: 0; /* prevents flex/grid horizontal overflow */
+    }
+    .pane:last-child { border-right: none; }
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      margin: 0 0 10px;
+      font-weight: 700;
+    }
+    .msg {
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .msg-user { background: var(--ink); color: #fff; margin-left: 28px; }
+    .msg-annie { background: var(--surface); border: 1px solid var(--border); margin-right: 16px; }
+    .msg-proactive { background: var(--accent-soft); border: 1px solid #a7f3d0; }
+    .actions-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .composer {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    .composer input {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .trace-item {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 8px;
+      background: var(--surface-muted);
+      border-radius: 6px;
+      margin-bottom: 6px;
+      border-left: 3px solid var(--accent);
+      word-break: break-word;
+    }
+    .trace-item.warn { border-left-color: var(--danger); background: var(--danger-soft); }
+    .conn-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .mobile-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .mobile-tabs button {
+      border: none;
+      background: transparent;
+      padding: 12px 6px;
+      min-height: 44px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-muted);
+    }
+    .mobile-tabs button.active { color: var(--accent); border-top: 2px solid var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>Annie UI Responsive Mockup Audit — Mobile (375px) · Tablet (768px) · Desktop (1280px)</h1>
+    <span class="pill" id="overflow-status">Overflow check: pending...</span>
+  </div>
+
+  <div class="frames">
+    <!-- 375px Mobile PWA -->
+    <div class="frame-wrap">
+      <div class="frame-label">MOBILE PWA · 375px (Thumb-Zone Tabs, 44px Touch Targets, min-width: 0)</div>
+      <div class="device mobile">
+        <div class="app-header">
+          <div class="brand"><span class="dot"></span> Annie</div>
+          <button class="btn btn-kill">Kill Run</button>
+        </div>
+        <div class="grid-mobile">
+          <div class="pane" style="flex:1; border-right:none;">
+            <div class="msg msg-user">Remind me to go to school Tuesday 6pm</div>
+            <div class="msg msg-annie">
+              Scheduled <strong>Go to school</strong> for Tue 18:00. Created <code>rem-8f2a.ics</code> and armed T-30m weather + OSRM check.
+            </div>
+            <div class="msg msg-proactive">
+              <strong>Proactive T-30m Alert:</strong> School starts in 30 mins. 16-min walk (2.1 km), 19°C, 60% rain. Open directions?
+              <div class="actions-row">
+                <button class="btn btn-accent">Get Directions</button>
+                <button class="btn">Snooze 10m</button>
+              </div>
+            </div>
+          </div>
+          <div class="composer">
+            <input type="text" placeholder="Ask Annie anything..." />
+            <button class="btn btn-accent">Send</button>
+          </div>
+          <div class="mobile-tabs">
+            <button class="active">Chat</button>
+            <button>Connections</button>
+            <button>Monitor</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 768px Tablet -->
+    <div class="frame-wrap">
+      <div class="frame-label">TABLET · 768px (Chat + Live Monitor Split)</div>
+      <div class="device tablet">
+        <div class="app-header">
+          <div class="brand"><span class="dot"></span> Annie · Life Admin</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn">Judge Sandbox</button>
+            <button class="btn btn-kill">Kill Switch</button>
+          </div>
+        </div>
+        <div class="grid-tablet">
+          <div class="pane" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div class="msg msg-user">Check my Search Console traffic this week</div>
+              <div class="msg msg-annie">Sandbox GSC (shared across Web + Telegram): 1,420 clicks (+14%), 38.2k impressions. Top query: "annie agent".</div>
+            </div>
+            <div class="composer" style="padding:10px 0 0;border:none;">
+              <input type="text" placeholder="Ask Annie anything..." />
+              <button class="btn btn-accent">Send</button>
+            </div>
+          </div>
+          <div class="pane">
+            <p class="section-title">Live Monitor (SSE)</p>
+            <div class="trace-item">[#1] ingress: web:usr-sandbox</div>
+            <div class="trace-item">[#2] parse: pro_analytics (0.92)</div>
+            <div class="trace-item">[#3] policy: ALLOW pro_analytics</div>
+            <div class="trace-item warn">[#4] quarantine: hidden_html_stripped</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1280px Desktop -->
+    <div class="frame-wrap">
+      <div class="frame-label">DESKTOP · 1280px (Connections Vault + Chat + Live Monitor)</div>
+      <div class="device desktop">
+        <div class="app-header">
+          <div class="brand"><span class="dot"></span> Annie — Proactive Personal Agent</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn">1-Click Judge Sandbox</button>
+            <button class="btn">Simulate T-30m Tick</button>
+            <button class="btn btn-kill">Kill Active Run</button>
+          </div>
+        </div>
+        <div class="grid-desktop">
+          <div class="pane">
+            <p class="section-title">Shared Auth Vault</p>
+            <div class="conn-row"><span>Google (Gmail + Cal)</span><span class="pill">Linked</span></div>
+            <div class="conn-row"><span>Search Console</span><span class="pill">Linked</span></div>
+            <div class="conn-row"><span>Outlook</span><span style="font-size:12px;color:#64748b;">Connect</span></div>
+            <div class="conn-row"><span>Treg (4,200+ APIs)</span><span class="pill">Active</span></div>
+            <p class="section-title" style="margin-top:16px;">Channel Linking</p>
+            <div class="trace-item">Send <strong>LINK-482910</strong> on Telegram or WhatsApp to share this vault.</div>
+          </div>
+          <div class="pane" style="display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div class="msg msg-user">Remind me to go to school Tuesday 6pm</div>
+              <div class="msg msg-annie">Scheduled <strong>Go to school</strong> for Tue 18:00. Created <code>rem-8f2a.ics</code> and armed T-30m weather + OSRM check.</div>
+              <div class="msg msg-proactive">
+                <strong>Proactive T-30m Alert:</strong> School starts in 30 mins. 16-min walk (2.1 km), 19°C, 60% rain.
+                <div class="actions-row">
+                  <button class="btn btn-accent">Get Directions</button>
+                  <button class="btn">Snooze 10m</button>
+                  <button class="btn">Call Me</button>
+                </div>
+              </div>
+            </div>
+            <div class="composer" style="padding:10px 0 0;border:none;">
+              <input type="text" placeholder="Text Annie (calendar, errands, renewals, Search Console, TikTok)..." />
+              <button class="btn btn-accent">Send</button>
+            </div>
+          </div>
+          <div class="pane">
+            <p class="section-title">Live Monitor &amp; Hash-Chain Audit</p>
+            <div class="trace-item">[#1] ingress: web:usr-sandbox · $0.000</div>
+            <div class="trace-item">[#2] parse: schedule_reminder (0.94)</div>
+            <div class="trace-item">[#3] policy: ALLOW write_reminder</div>
+            <div class="trace-item">[#4] tool: rem-8f2a.ics + T-30m armed</div>
+            <div class="trace-item">[#5] heartbeat: OSRM 16m + Open-Meteo 19°C</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const devices = [...document.querySelectorAll('.device')];
+    const overflows = devices.filter(el => el.scrollWidth > el.clientWidth);
+    const badge = document.getElementById('overflow-status');
+    badge.textContent = overflows.length === 0
+      ? 'Overflow check: PASS (0 horizontal overflows across 375px / 768px / 1280px)'
+      : `Overflow check: FAIL (${overflows.length} frame(s) overflow)`;
+  </script>
+</body>
+</html>
