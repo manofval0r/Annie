@@ -20,7 +20,10 @@ export function AnnieMascot({ size = 34, className = "" }: AnnieMascotProps) {
       autoplay: !reduce,
       path: "/annie-mascot.json",
     });
-    return () => anim.destroy();
+    return () => {
+      anim.destroy();
+      el.replaceChildren();
+    };
   }, []);
 
   return (
@@ -28,7 +31,7 @@ export function AnnieMascot({ size = 34, className = "" }: AnnieMascotProps) {
       ref={ref}
       style={{ width: size, height: size }}
       className={`shrink-0 ${className}`}
-      aria-label="Annie companion"
+      aria-hidden="true"
     />
   );
 }

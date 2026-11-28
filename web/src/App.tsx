@@ -173,7 +173,7 @@ export default function App() {
   };
 
   const handleAttach = async (file: File) => {
-    const content = await file.text();
+    const content = await file.slice(0, 8192).text();
     await handleSend(`Renewal file (${file.name}):\n${content.slice(0, 4000)}`);
   };
 
@@ -252,8 +252,11 @@ export default function App() {
       if (v.mode === "web_speech_fallback" && "speechSynthesis" in window) {
         window.speechSynthesis.speak(new SpeechSynthesisUtterance(v.spokenText));
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      pushMsg({
+        role: "annie",
+        text: `Voice alert failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
   };
 
@@ -271,8 +274,11 @@ export default function App() {
         { runId: lastRunId, seq: prev.length + 1, type: "killed_by_user", summary: "Run aborted by user", warn: true },
         ...prev,
       ]);
-    } catch {
-      // ignore
+    } catch (err) {
+      pushMsg({
+        role: "annie",
+        text: `Could not stop run: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
   };
 
@@ -352,14 +358,14 @@ export default function App() {
             <button
               type="button"
               onClick={() => void handleSandbox()}
-              className="min-h-[40px] rounded-full border border-[#A8B0B8]/25 bg-[#1A1C20] px-3.5 text-[12.5px] font-bold"
+              className="min-h-[44px] rounded-full border border-[#A8B0B8]/25 bg-[#1A1C20] px-3.5 text-[12.5px] font-bold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4F6F8]"
             >
               Sandbox
             </button>
             <button
               type="button"
               onClick={() => void handleKill()}
-              className="min-h-[40px] rounded-full border border-[#A8B0B8]/25 px-3.5 text-[12.5px] font-bold text-[#D6DCE2]"
+              className="min-h-[44px] rounded-full border border-[#A8B0B8]/25 px-3.5 text-[12.5px] font-bold text-[#D6DCE2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4F6F8]"
             >
               Stop
             </button>
@@ -430,7 +436,7 @@ export default function App() {
                                   <a
                                     href={`/artifacts/${encodeURIComponent(m.reminderId)}.ics`}
                                     download
-                                    className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-[#F4F6F8] px-4 text-[13px] font-bold text-[#0D0E11]"
+                                    className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#F4F6F8] px-4 text-[13px] font-bold text-[#0D0E11] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4F6F8]"
                                   >
                                     <Download className="h-4 w-4" />
                                     Calendar File
@@ -442,7 +448,7 @@ export default function App() {
                                       href={m.mapsUrl}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex min-h-[40px] items-center gap-2 rounded-full bg-[#F4F6F8] px-4 text-[13px] font-bold text-[#0D0E11]"
+                                      className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#F4F6F8] px-4 text-[13px] font-bold text-[#0D0E11] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4F6F8]"
                                     >
                                       <ExternalLink className="h-4 w-4" />
                                       Open Directions
@@ -450,7 +456,7 @@ export default function App() {
                                     <button
                                       type="button"
                                       onClick={() => void handleSpeak(m.text)}
-                                      className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-[#A8B0B8]/30 px-4 text-[13px] font-bold text-[#D6DCE2] hover:border-[#F4F6F8]"
+                                      className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#A8B0B8]/30 px-4 text-[13px] font-bold text-[#D6DCE2] hover:border-[#F4F6F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4F6F8]"
                                     >
                                       <Volume2 className="h-4 w-4" />
                                       Speak Alert
@@ -465,7 +471,6 @@ export default function App() {
                     ))}
                   </div>
                 )}
-                <FloatingComposer onSend={handleSend} onAttachFile={handleAttach} disabled={busy} />
               </motion.div>
             )}
 
@@ -598,7 +603,7 @@ export default function App() {
                           <a
                             href={`/artifacts/${encodeURIComponent(r.icsArtifactId)}`}
                             download
-                            className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-[#A8B0B8]/30 px-4 text-[13px] font-bold text-[#F4F6F8]"
+                            className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-[#A8B0B8]/30 px-4 text-[13px] font-bold text-[#F4F6F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4F6F8]"
                           >
                             <Download className="h-4 w-4" />
                             .ics
@@ -663,9 +668,13 @@ export default function App() {
           </AnimatePresence>
         </main>
 
+        {tab === "chat" && (
+          <FloatingComposer onSend={handleSend} onAttachFile={handleAttach} disabled={busy} />
+        )}
+
         {/* Mobile Thumb-Zone Bottom Bar */}
         <nav
-          className="grid shrink-0 grid-cols-4 border-t border-[#A8B0B8]/15 bg-[#0D0E11] md:hidden"
+          className="grid shrink-0 grid-cols-4 border-t border-[#A8B0B8]/15 bg-[#0D0E11] pb-[env(safe-area-inset-bottom)] md:hidden"
           aria-label="Mobile navigation"
         >
           {navItems.map(({ key, label, Icon }) => {
@@ -675,8 +684,8 @@ export default function App() {
                 key={key}
                 type="button"
                 onClick={() => setTab(key)}
-                aria-pressed={active}
-                className={`flex min-h-[54px] flex-col items-center justify-center gap-1 text-[11.5px] font-bold ${
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-[54px] flex-col items-center justify-center gap-1 text-[11.5px] font-bold focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#F4F6F8] ${
                   active ? "text-[#F4F6F8]" : "text-[#A8B0B8]"
                 }`}
               >

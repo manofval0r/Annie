@@ -20,7 +20,7 @@ export function FloatingComposer({ onSend, onAttachFile, disabled }: FloatingCom
   };
 
   return (
-    <div className="pointer-events-none fixed bottom-20 left-0 right-0 z-20 flex justify-center px-4 md:bottom-6 md:left-60">
+    <div className="pointer-events-none fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-20 flex justify-center px-4 md:bottom-6 md:left-60">
       <div className="flex w-full max-w-2xl items-center gap-3">
         <input
           ref={fileRef}
@@ -55,6 +55,7 @@ export function FloatingComposer({ onSend, onAttachFile, disabled }: FloatingCom
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Ask Annie to handle something..."
+            aria-label="Message Annie"
             disabled={disabled}
             className="min-w-0 flex-1 bg-transparent text-[15px] text-[#F4F6F8] placeholder-[#A8B0B8] outline-none"
           />

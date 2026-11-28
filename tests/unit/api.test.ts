@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApp } from "../../src/app.js";
@@ -89,6 +89,24 @@ describe("Hono HTTP API, Sandbox, Artifacts & Proactive Tick", () => {
       body: JSON.stringify({ channel: "web", senderId: "web-sandbox" }),
     });
     expect(killOk.status).toBe(200);
+    db.close();
+  });
+
+  it("serves valid built assets and blocks traversal or invalid extensions", async () => {
+    const db = createDb(":memory:");
+    const pubDir = makeDir();
+    mkdirSync(join(pubDir, "assets"), { recursive: true });
+    writeFileSync(join(pubDir, "assets", "index-abc123.js"), "console.log('ok');");
+    const app = createApp(db, { publicDir: pubDir, artifactDir: makeDir(), traceDir: makeDir() });
+
+    const ok = await app.request("/assets/index-abc123.js");
+    expect(ok.status).toBe(200);
+    expect(ok.headers.get("content-type")).toContain("application/javascript");
+
+    expect((await app.request("/assets/..%2Fpackage.json")).status).toBe(404);
+    expect((await app.request("/assets/..%2F..%2Findex.js")).status).toBe(404);
+    expect((await app.request("/assets/secret.env")).status).toBe(404);
+    expect((await app.request("/assets/nested.dot.js")).status).toBe(404);
     db.close();
   });
 });

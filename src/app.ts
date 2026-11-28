@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { timingSafeEqual } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { join, resolve, sep } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { enableJudgeSandbox, listOAuthConnections, resolveChannelUserId } from "./auth/vault.js";
 import { buildGoogleOAuthUrl, completeGoogleOAuthCallback } from "./tools/google.js";
@@ -90,14 +90,21 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
 
   app.get("/assets/:filename", (c) => {
     const filename = c.req.param("filename");
-    if (!/^[a-zA-Z0-9._-]+$/.test(filename)) return c.notFound();
-    const p = join(publicDir, "assets", filename);
-    if (!existsSync(p)) return c.notFound();
+    if (!/^[a-zA-Z0-9_-]+\.(js|css|svg|png|woff2|map)$/.test(filename)) return c.notFound();
+    const assetsDir = resolve(publicDir, "assets");
+    const p = resolve(assetsDir, filename);
+    if (!p.startsWith(assetsDir + sep) || !existsSync(p) || !statSync(p).isFile()) return c.notFound();
     const ct = filename.endsWith(".js")
       ? "application/javascript; charset=utf-8"
       : filename.endsWith(".css")
         ? "text/css; charset=utf-8"
-        : "application/octet-stream";
+        : filename.endsWith(".svg")
+          ? "image/svg+xml"
+          : filename.endsWith(".png")
+            ? "image/png"
+            : filename.endsWith(".woff2")
+              ? "font/woff2"
+              : "application/json";
     return c.body(readFileSync(p), 200, { "Content-Type": ct });
   });
 

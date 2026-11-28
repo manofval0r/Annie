@@ -1,9 +1,20 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { rmSync } from "node:fs";
+import { resolve } from "node:path";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: "clean-public-assets",
+      buildStart() {
+        rmSync(resolve(__dirname, "../public/assets"), { recursive: true, force: true });
+      },
+    },
+  ],
   build: {
     outDir: "../public",
     emptyOutDir: false,

@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 interface SpotlightCardProps {
   children: ReactNode;
@@ -8,6 +8,12 @@ interface SpotlightCardProps {
 export function SpotlightCard({ children, className = "" }: SpotlightCardProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   const handleMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "touch") return;

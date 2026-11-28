@@ -1,13 +1,6 @@
 @import "tailwindcss";
 
 @layer base {
-  :root {
-    --obsidian: #0D0E11;
-    --charcoal: #1A1C20;
-    --chrome: #A8B0B8;
-    --silver: #D6DCE2;
-    --white: #F4F6F8;
-  }
   html, body, #root {
     height: 100%;
     font-family: "Nunito", -apple-system, BlinkMacSystemFont, sans-serif;
