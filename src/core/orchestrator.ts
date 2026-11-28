@@ -8,6 +8,7 @@ import { evaluatePolicy } from "./policy.js";
 import { sanitiseExternalData } from "./sanitise.js";
 import { parseIntent } from "../llm/provider.js";
 import { redeemLinkCode, resolveChannelUserId } from "../auth/vault.js";
+import { queryProAnalytics, type ProAnalyticsSource } from "../tools/treg.js";
 import { analyzeRenewalNotice } from "../workflows/renewal-triage.js";
 import type { NormalizedMessage, ParsedIntent } from "./types.js";
 
@@ -346,8 +347,17 @@ export async function runPipeline(
     }
 
     if (parsed.intent === "pro_analytics") {
-      const source = String(parsed.params.source || "search_console");
-      const reply = `Connected to ${source} adapter (Sandbox/Treg ready). Run ${runId}.`;
+      const rawSource = String(parsed.params.source || "search_console");
+      const source: ProAnalyticsSource =
+        rawSource === "tiktok" || rawSource === "adsense" ? rawSource : "search_console";
+      const report = await queryProAnalytics(
+        db,
+        userId,
+        source,
+        String(parsed.params.query || sanitised.clean),
+        controller.signal
+      );
+      const reply = `${report.summary} Run ${runId}.`;
       return finishRun(db, runId, parsed.intent, "completed", reply, opts.traceDir, sanitised.suspicions);
     }
 
