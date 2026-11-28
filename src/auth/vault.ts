@@ -177,6 +177,12 @@ export function enableJudgeSandbox(db: DatabaseSync, webSenderId = "web-sandbox"
     accessToken: "sandbox_mock_treg_token",
     scopes: "tiktok.read seo.read",
   });
+  saveOAuthConnection(db, {
+    userId,
+    provider: "github",
+    accessToken: "sandbox_mock_github_token",
+    scopes: "repo.read notifications",
+  });
 
   const linkCode = generateLinkCode(db, userId);
   return { userId, linkCode, connections: listOAuthConnections(db, userId) };

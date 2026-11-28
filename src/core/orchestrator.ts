@@ -8,6 +8,10 @@ import { evaluatePolicy } from "./policy.js";
 import { sanitiseExternalData } from "./sanitise.js";
 import { parseIntent } from "../llm/provider.js";
 import { redeemLinkCode, resolveChannelUserId } from "../auth/vault.js";
+import { queryGitHub } from "../tools/github.js";
+import { fetchGmailInbox } from "../tools/google.js";
+import { lookupGroceryProduct, lookupWikipedia } from "../tools/knowledge.js";
+import { buildWeekendPlan } from "../tools/planner.js";
 import { queryProAnalytics, type ProAnalyticsSource } from "../tools/treg.js";
 import { analyzeRenewalNotice } from "../workflows/renewal-triage.js";
 import type { NormalizedMessage, ParsedIntent } from "./types.js";
@@ -342,8 +346,39 @@ export async function runPipeline(
     if (parsed.intent === "plan_weekend") {
       const city = String(parsed.params.city || "Lisbon");
       const budget = Number(parsed.params.budgetAmount || 60);
-      const reply = `Planned weekend in ${city} within EUR ${budget} (primary outdoor + rain indoor swap ready). Run ${runId}.`;
-      return finishRun(db, runId, parsed.intent, "completed", reply, opts.traceDir, sanitised.suspicions);
+      const people = Number(parsed.params.people || 2);
+      const plan = await buildWeekendPlan(city, budget, people, controller.signal);
+      const reply = `${plan.summary} Run ${runId}.`;
+      return finishRun(
+        db,
+        runId,
+        parsed.intent,
+        plan.partial ? "partial" : "completed",
+        reply,
+        opts.traceDir,
+        sanitised.suspicions
+      );
+    }
+
+    if (parsed.intent === "github_check") {
+      const repo = parsed.params.repo ? String(parsed.params.repo) : undefined;
+      const gh = await queryGitHub(db, userId, repo, controller.signal);
+      return finishRun(db, runId, parsed.intent, "completed", `${gh.summary} Run ${runId}.`, opts.traceDir, sanitised.suspicions);
+    }
+
+    if (parsed.intent === "gmail_check") {
+      const gm = await fetchGmailInbox(db, userId, controller.signal);
+      return finishRun(db, runId, parsed.intent, "completed", `${gm.summary} Run ${runId}.`, opts.traceDir, sanitised.suspicions);
+    }
+
+    if (parsed.intent === "grocery_check") {
+      const info = await lookupGroceryProduct(String(parsed.params.query || ""), controller.signal);
+      return finishRun(db, runId, parsed.intent, "completed", `${info} Run ${runId}.`, opts.traceDir, sanitised.suspicions);
+    }
+
+    if (parsed.intent === "lookup_info") {
+      const info = await lookupWikipedia(String(parsed.params.topic || ""), controller.signal);
+      return finishRun(db, runId, parsed.intent, "completed", `${info} Run ${runId}.`, opts.traceDir, sanitised.suspicions);
     }
 
     if (parsed.intent === "pro_analytics") {

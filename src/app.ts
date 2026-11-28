@@ -4,7 +4,8 @@ import { timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { enableJudgeSandbox, resolveChannelUserId } from "./auth/vault.js";
+import { enableJudgeSandbox, listOAuthConnections, resolveChannelUserId } from "./auth/vault.js";
+import { buildGoogleOAuthUrl, completeGoogleOAuthCallback } from "./tools/google.js";
 import { subscribeAuditEvents, type StoredAuditEvent } from "./core/audit.js";
 import { tickHeartbeat, type HeartbeatDeps } from "./core/heartbeat.js";
 import { triggerKill } from "./core/kill.js";
@@ -154,6 +155,51 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
     const body = (await c.req.json().catch(() => ({}))) as { senderId?: string };
     const data = enableJudgeSandbox(db, body.senderId || "web-sandbox");
     return c.json(data);
+  });
+
+  app.get("/api/reminders", (c) => {
+    const senderId = c.req.query("senderId") || "web-sandbox";
+    const userId = resolveChannelUserId(db, "web", senderId);
+    const rows = db
+      .prepare(
+        `SELECT id, title, location_label as locationLabel, event_at as eventAt, notify_at as notifyAt,
+                ics_artifact_id as icsArtifactId, status
+         FROM reminders WHERE user_id = ? ORDER BY event_at ASC LIMIT 25`
+      )
+      .all(userId);
+    return c.json({ userId, reminders: rows });
+  });
+
+  app.get("/api/connections", (c) => {
+    const senderId = c.req.query("senderId") || "web-sandbox";
+    const userId = resolveChannelUserId(db, "web", senderId);
+    return c.json({
+      userId,
+      connections: listOAuthConnections(db, userId),
+      googleOAuthConfigured: Boolean(process.env.GOOGLE_CLIENT_ID),
+    });
+  });
+
+  app.get("/auth/google", (c) => {
+    const senderId = c.req.query("senderId") || "web-sandbox";
+    const userId = resolveChannelUserId(db, "web", senderId);
+    const url = buildGoogleOAuthUrl(userId);
+    if (!url) {
+      return c.json({
+        configured: false,
+        message: "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env to enable live Google OAuth, or use Sandbox.",
+      }, 200);
+    }
+    return c.redirect(url);
+  });
+
+  app.get("/auth/google/callback", async (c) => {
+    const code = c.req.query("code") || "";
+    const state = c.req.query("state") || "";
+    if (!code || !state) return c.json({ error: "Missing code or state" }, 400);
+    const res = await completeGoogleOAuthCallback(db, code, state);
+    if (!res.ok) return c.json({ error: res.error }, 400);
+    return c.redirect("/?connected=google");
   });
 
   app.post("/api/debug/tick", async (c) => {

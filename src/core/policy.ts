@@ -6,6 +6,10 @@ export const ALLOWED_INTENTS: ReadonlySet<IntentName> = new Set([
   "triage_renewal",
   "check_status",
   "pro_analytics",
+  "github_check",
+  "gmail_check",
+  "lookup_info",
+  "grocery_check",
   "link_channel",
   "approve_action",
   "cancel_run",
@@ -31,6 +35,9 @@ export const ALLOWED_OUTBOUND_HOSTS: ReadonlySet<string> = new Set([
   "api.telnyx.com",
   "api.groq.com",
   "generativelanguage.googleapis.com",
+  "gmail.googleapis.com",
+  "oauth2.googleapis.com",
+  "api.github.com",
 ]);
 
 const PRIVATE_IP_PATTERNS = [
