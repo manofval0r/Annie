@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Annie — Interactive Obsidian Design Studio</title>
+  <title>Annie — Obsidian &amp; Chrome Interactive Studio v2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
   <style>
     :root {
       --obsidian: #0D0E11;
@@ -14,16 +14,16 @@
       --chrome: #A8B0B8;
       --silver: #D6DCE2;
       --white: #F4F6F8;
-      --line: rgba(168, 176, 184, 0.18);
-      --line-strong: rgba(214, 220, 226, 0.38);
+      --line: rgba(168, 176, 184, 0.16);
+      --line-strong: rgba(214, 220, 226, 0.36);
       --font-ui: "Nunito", -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: "JetBrains Mono", Consolas, monospace;
       --ease-out: cubic-bezier(0.05, 0.7, 0.1, 1);
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body {
       font-family: var(--font-ui);
+      font-variant-numeric: tabular-nums;
       background: #07080A;
       color: var(--white);
       display: flex;
@@ -44,404 +44,180 @@
       gap: 12px;
       flex-shrink: 0;
     }
-    .studio-id {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 14px;
-      letter-spacing: 0.02em;
-      color: var(--white);
-    }
-    .studio-id span {
-      color: var(--chrome);
-      font-weight: 500;
-      font-size: 12px;
-    }
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 14px;
-    }
+    .studio-id { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 14px; letter-spacing: 0.02em; }
+    .studio-id span { color: var(--chrome); font-weight: 500; font-size: 12.5px; }
+    .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
     .seg-group {
-      display: inline-flex;
-      align-items: center;
-      background: var(--charcoal);
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 3px;
-      gap: 2px;
+      display: inline-flex; align-items: center; background: var(--charcoal);
+      border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px;
     }
     .seg-btn {
-      font-family: var(--font-ui);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--chrome);
-      background: transparent;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 999px;
-      cursor: pointer;
+      font-family: var(--font-ui); font-size: 12px; font-weight: 700; color: var(--chrome);
+      background: transparent; border: none; padding: 6px 12px; border-radius: 999px; cursor: pointer;
       transition: color 160ms var(--ease-out), background 160ms var(--ease-out);
     }
     .seg-btn:hover { color: var(--white); }
     .seg-btn.active { background: var(--white); color: var(--obsidian); }
-    .meter {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--silver);
-      letter-spacing: 0.02em;
-    }
+    .meter { font-size: 12px; font-weight: 600; color: var(--silver); }
 
-    /* Stage */
     .stage {
-      flex: 1;
-      overflow: auto;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
+      flex: 1; overflow: auto; display: flex; justify-content: center; align-items: flex-start;
       padding: 24px 16px 36px;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(214, 220, 226, 0.05), transparent 55%),
-        #07080A;
+      background: radial-gradient(circle at 50% 0%, rgba(214, 220, 226, 0.06), transparent 52%), #07080A;
     }
-
-    /* Simulated Device Frame */
     .viewport-shell {
-      width: 1280px;
-      max-width: 100%;
-      height: 760px;
-      background: var(--obsidian);
-      border: 1px solid var(--line-strong);
-      border-radius: 22px;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.65);
+      width: 1280px; max-width: 100%; height: 760px; background: var(--obsidian);
+      border: 1px solid var(--line-strong); border-radius: 22px; overflow: hidden;
+      display: flex; flex-direction: column; position: relative;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.68);
       transition: width 260ms var(--ease-out), height 260ms var(--ease-out);
     }
     .viewport-shell.vp-mobile { width: 375px; height: 740px; border-radius: 34px; }
     .viewport-shell.vp-tablet { width: 768px; height: 760px; border-radius: 26px; }
     .viewport-shell.vp-desktop { width: 1280px; height: 760px; }
 
-    /* App Header */
-    .app-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 20px;
-      border-bottom: 1px solid var(--line);
-      background: var(--obsidian);
-      flex-shrink: 0;
-      gap: 12px;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-    }
-    .head-actions { display: flex; align-items: center; gap: 8px; }
-    .btn {
-      font-family: var(--font-ui);
-      font-size: 12.5px;
-      font-weight: 700;
-      padding: 8px 14px;
-      min-height: 36px;
-      border-radius: 999px;
-      border: 1px solid var(--line-strong);
+    /* React-Bits inspired SpotlightCard & GlareHover */
+    .spotlight {
+      position: relative;
+      overflow: hidden;
       background: var(--charcoal);
-      color: var(--white);
-      cursor: pointer;
-      transition: transform 150ms var(--ease-out), border-color 150ms var(--ease-out), background 150ms var(--ease-out);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      transition: border-color 180ms var(--ease-out), transform 180ms var(--ease-out);
     }
-    .btn:hover { border-color: var(--white); transform: translateY(-1px); }
-    .btn:active { transform: scale(0.98); }
-    .btn-invert { background: var(--white); color: var(--obsidian); border-color: var(--white); }
-    .btn-ghost { background: transparent; border-color: var(--line); color: var(--silver); }
+    .spotlight::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(214, 220, 226, 0.13), transparent 70%);
+      transition: opacity 220ms var(--ease-out);
+    }
+    .spotlight:hover { border-color: var(--line-strong); }
+    .spotlight:hover::before { opacity: 1; }
 
-    /* App Grid */
-    .app-body {
-      flex: 1;
-      min-height: 0;
-      display: grid;
-      grid-template-columns: 260px 1fr 330px;
+    .glare-btn {
+      position: relative; overflow: hidden;
+      font-family: var(--font-ui); font-size: 12.5px; font-weight: 700;
+      padding: 8px 15px; min-height: 36px; border-radius: 999px;
+      border: 1px solid var(--line-strong); background: var(--charcoal); color: var(--white);
+      cursor: pointer;
+      transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out);
     }
+    .glare-btn::after {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(110deg, transparent 30%, rgba(244, 246, 248, 0.18) 50%, transparent 70%);
+      transform: translateX(-130%); transition: transform 420ms var(--ease-out);
+    }
+    .glare-btn:hover { border-color: var(--white); transform: translateY(-1px); }
+    .glare-btn:hover::after { transform: translateX(130%); }
+    .glare-btn:active { transform: scale(0.98); }
+    .glare-btn.invert { background: var(--white); color: var(--obsidian); border-color: var(--white); }
+    .glare-btn.ghost { background: transparent; border-color: var(--line); color: var(--silver); }
+
+    .app-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 20px; border-bottom: 1px solid var(--line); background: var(--obsidian);
+      flex-shrink: 0; gap: 12px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+    .head-actions { display: flex; align-items: center; gap: 8px; }
+
+    .app-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 268px 1fr 330px; }
     .vp-tablet .app-body { grid-template-columns: 1fr 300px; }
     .vp-tablet .col-vault { display: none; }
     .vp-mobile .app-body { display: flex; flex-direction: column; }
     .vp-mobile .pane { display: none; flex: 1; }
     .vp-mobile .pane.mobile-active { display: flex; flex-direction: column; }
 
-    .pane {
-      min-width: 0;
-      min-height: 0;
-      border-right: 1px solid var(--line);
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
+    .pane { min-width: 0; min-height: 0; border-right: 1px solid var(--line); display: flex; flex-direction: column; position: relative; }
     .pane:last-child { border-right: none; }
-    .pane-scroll {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-    }
+    .pane-scroll { flex: 1; overflow-y: auto; padding: 20px; }
     .pane-scroll.chat-pad { padding-bottom: 108px; }
 
-    .kicker {
-      font-family: var(--font-ui);
-      font-size: 11px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--chrome);
-      margin: 0 0 14px;
-    }
+    .kicker { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--chrome); margin: 0 0 14px; }
 
-    /* Surfaces & Messages */
-    .surface {
-      background: var(--charcoal);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 15px 16px;
-      margin-bottom: 12px;
-    }
-    .surface-light {
-      background: var(--white);
-      color: var(--obsidian);
-      border-color: var(--white);
-    }
     .msg {
-      max-width: 84%;
-      padding: 13px 16px;
-      border-radius: 18px;
-      margin-bottom: 14px;
-      font-size: 14.5px;
-      line-height: 1.55;
-      word-break: break-word;
+      max-width: 84%; padding: 14px 17px; border-radius: 18px; margin-bottom: 14px;
+      font-family: var(--font-ui); font-size: 14.5px; line-height: 1.55; word-break: break-word;
+      animation: fadeUp 220ms var(--ease-out) both;
     }
-    .msg-user {
-      margin-left: auto;
-      background: var(--white);
-      color: var(--obsidian);
-      border-bottom-right-radius: 6px;
-      font-weight: 600;
-    }
-    .msg-annie {
-      background: var(--charcoal);
-      color: var(--white);
-      border: 1px solid var(--line);
-      border-bottom-left-radius: 6px;
-    }
-    .msg-meta {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--chrome);
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .action-strip {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .msg-user { margin-left: auto; background: var(--white); color: var(--obsidian); border-bottom-right-radius: 6px; font-weight: 700; }
+    .msg-annie { border-bottom-left-radius: 6px; }
+    .msg-sub { font-family: var(--font-ui); font-size: 12.5px; font-weight: 500; color: var(--chrome); margin-top: 6px; }
+    .msg-meta { font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--chrome); margin-top: 9px; display: flex; align-items: center; gap: 12px; }
+    .action-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
-    /* Custom Progress Ring & Hairline Loader (No Emojis / No Badges) */
-    .progress-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      background: var(--charcoal);
-      border: 1px solid var(--line-strong);
-      border-radius: 14px;
-      margin-bottom: 14px;
-    }
+    .progress-row { display: flex; align-items: center; gap: 13px; padding: 14px 16px; margin-bottom: 14px; }
     .ring-spin { animation: spin 1.2s linear infinite; transform-origin: center; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .shimmer-track {
-      height: 2px;
-      width: 100%;
-      background: var(--line);
-      border-radius: 999px;
-      overflow: hidden;
-      margin-top: 6px;
-    }
-    .shimmer-bar {
-      height: 100%;
-      width: 42%;
-      background: linear-gradient(90deg, transparent, var(--white), transparent);
-      animation: glide 1.4s ease-in-out infinite;
-    }
-    @keyframes glide {
-      0% { transform: translateX(-120%); }
-      100% { transform: translateX(300%); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .ring-spin, .shimmer-bar { animation: none; }
-    }
+    .shimmer-track { height: 2px; width: 100%; background: var(--line); border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .shimmer-bar { height: 100%; width: 42%; background: linear-gradient(90deg, transparent, var(--white), transparent); animation: glide 1.4s ease-in-out infinite; }
+    @keyframes glide { 0% { transform: translateX(-120%); } 100% { transform: translateX(300%); } }
+    @media (prefers-reduced-motion: reduce) { .ring-spin, .shimmer-bar, .msg { animation: none; } }
 
-    /* Connections List */
-    .conn-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 11px 0;
-      border-bottom: 1px solid var(--line);
-      font-size: 13.5px;
-    }
+    .conn-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
     .conn-item:last-child { border-bottom: none; }
-    .conn-state {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--silver);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .status-line {
-      width: 14px;
-      height: 2px;
-      background: var(--white);
-      border-radius: 2px;
-    }
+    .conn-state { font-size: 12px; font-weight: 700; color: var(--silver); display: flex; align-items: center; gap: 7px; }
+    .status-line { width: 14px; height: 2px; background: var(--white); border-radius: 2px; }
     .status-line.off { background: rgba(168, 176, 184, 0.3); }
 
-    /* Telemetry Log (Nunito — clean human legibility) */
     .trace-row {
-      padding: 11px 13px;
-      border-left: 2px solid var(--silver);
-      background: rgba(26, 28, 32, 0.72);
-      border-radius: 0 12px 12px 0;
-      margin-bottom: 10px;
-      font-family: var(--font-ui);
-      font-variant-numeric: tabular-nums;
-      font-size: 13px;
-      line-height: 1.5;
-      color: var(--silver);
-      word-break: break-word;
+      padding: 12px 14px; border-left: 2px solid var(--silver); background: rgba(26, 28, 32, 0.78);
+      border-radius: 0 12px 12px 0; margin-bottom: 10px;
+      font-family: var(--font-ui); font-size: 13px; line-height: 1.5; color: var(--silver);
+      transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out);
     }
-    .trace-row strong { color: var(--white); font-weight: 700; }
-    .trace-row.alert { border-left-color: var(--white); background: #22252B; }
+    .trace-row:hover { border-left-color: var(--white); background: #22252B; }
+    .trace-row strong { color: var(--white); font-weight: 800; }
 
     /* Floating Dynamic Input Dock + Separate Floating Attachment Icon */
-    .floating-dock {
-      position: absolute;
-      left: 16px;
-      right: 16px;
-      bottom: 18px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      pointer-events: none;
-    }
+    .floating-dock { position: absolute; left: 16px; right: 16px; bottom: 18px; display: flex; align-items: center; gap: 10px; pointer-events: none; }
     .attach-fab {
-      pointer-events: auto;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      background: var(--charcoal);
-      border: 1px solid var(--line-strong);
-      color: var(--silver);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      flex-shrink: 0;
+      pointer-events: auto; width: 48px; height: 48px; border-radius: 50%;
+      background: var(--charcoal); border: 1px solid var(--line-strong); color: var(--silver);
+      display: grid; place-items: center; cursor: pointer; flex-shrink: 0;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
       transition: transform 180ms var(--ease-out), border-color 180ms var(--ease-out), color 180ms var(--ease-out);
     }
-    .attach-fab:hover { transform: translateY(-2px); border-color: var(--white); color: var(--white); }
+    .attach-fab:hover { transform: translateY(-2px) scale(1.04); border-color: var(--white); color: var(--white); }
     .input-pill {
-      pointer-events: auto;
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(26, 28, 32, 0.94);
-      backdrop-filter: blur(14px);
-      border: 1px solid var(--line-strong);
-      border-radius: 999px;
-      padding: 6px 6px 6px 18px;
+      pointer-events: auto; flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px;
+      background: rgba(26, 28, 32, 0.94); backdrop-filter: blur(14px);
+      border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 6px 6px 18px;
       box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
       transition: border-color 180ms var(--ease-out), transform 180ms var(--ease-out);
     }
     .input-pill:focus-within { border-color: var(--white); transform: translateY(-1px); }
-    .input-pill input {
-      flex: 1;
-      min-width: 0;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--white);
-      font-family: var(--font-ui);
-      font-size: 14px;
-    }
+    .input-pill input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--white); font-family: var(--font-ui); font-size: 14px; }
     .input-pill input::placeholder { color: var(--chrome); }
-    .send-fab {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: none;
-      background: var(--white);
-      color: var(--obsidian);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: transform 140ms var(--ease-out);
-    }
-    .send-fab:hover { transform: scale(1.05); }
+    .send-fab { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--white); color: var(--obsidian); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: transform 150ms var(--ease-out); }
+    .send-fab:hover { transform: scale(1.07); }
 
-    /* Mobile Bottom Navigation */
-    .mobile-nav {
-      display: none;
-      border-top: 1px solid var(--line);
-      background: var(--obsidian);
-      padding: 4px 8px;
-      flex-shrink: 0;
-    }
+    .mobile-nav { display: none; border-top: 1px solid var(--line); background: var(--obsidian); padding: 4px 8px; flex-shrink: 0; }
     .vp-mobile .mobile-nav { display: grid; grid-template-columns: repeat(3, 1fr); }
-    .mobile-nav button {
-      font-family: var(--font-ui);
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--chrome);
-      background: transparent;
-      border: none;
-      min-height: 44px;
-      cursor: pointer;
-    }
+    .mobile-nav button { font-family: var(--font-ui); font-size: 12.5px; font-weight: 700; color: var(--chrome); background: transparent; border: none; min-height: 46px; cursor: pointer; }
     .mobile-nav button.active { color: var(--white); }
   </style>
 </head>
 <body>
   <div class="studio-bar">
-    <div class="studio-id">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F4F6F8" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-      ANNIE STUDIO <span>Obsidian &amp; Chrome Mockup</span>
-    </div>
+    <div class="studio-id">ANNIE STUDIO <span>100% Nunito · Obsidian &amp; Chrome · React-Bits Motion</span></div>
     <div class="controls">
-      <div class="seg-group" id="vp-controls" aria-label="Viewport size">
+      <div class="seg-group" id="vp-controls">
         <button class="seg-btn" data-vp="vp-mobile">375px</button>
         <button class="seg-btn" data-vp="vp-tablet">768px</button>
         <button class="seg-btn active" data-vp="vp-desktop">1280px</button>
       </div>
-      <div class="seg-group" id="state-controls" aria-label="App state">
+      <div class="seg-group" id="state-controls">
         <button class="seg-btn active" data-state="proactive">T-30m Alert</button>
         <button class="seg-btn" data-state="running">Running</button>
         <button class="seg-btn" data-state="triage">Renewal Triage</button>
         <button class="seg-btn" data-state="killed">Kill Switch</button>
       </div>
-      <div class="meter" id="overflow-meter">OVERFLOW: CHECKING</div>
+      <div class="meter" id="overflow-meter">Width 1280px · 0 overflow</div>
     </div>
   </div>
 
@@ -453,36 +229,33 @@
           Annie
         </div>
         <div class="head-actions">
-          <button class="btn btn-ghost" id="btn-sandbox-demo">Sandbox</button>
-          <button class="btn" id="btn-kill-demo">Stop Run</button>
+          <button class="glare-btn ghost">Sandbox</button>
+          <button class="glare-btn">Stop Run</button>
         </div>
       </header>
 
       <div class="app-body">
-        <!-- Vault Column -->
         <aside class="pane col-vault" id="pane-vault">
           <div class="pane-scroll">
             <p class="kicker">Connected Accounts</p>
-            <div class="surface">
+            <div class="spotlight" style="padding:14px 16px;margin-bottom:14px;">
               <div class="conn-item"><span>Gmail &amp; Calendar</span><span class="conn-state"><span class="status-line"></span>Linked</span></div>
               <div class="conn-item"><span>Search Console</span><span class="conn-state"><span class="status-line"></span>Linked</span></div>
-              <div class="conn-item"><span>Outlook</span><span class="conn-state"><span class="status-line off"></span>Off</span></div>
+              <div class="conn-item"><span>GitHub</span><span class="conn-state"><span class="status-line"></span>Linked</span></div>
               <div class="conn-item"><span>Treg Gateway</span><span class="conn-state"><span class="status-line"></span>Active</span></div>
             </div>
-            <p class="kicker" style="margin-top:20px;">Share Across Channels</p>
-            <div class="surface">
+            <p class="kicker">Share Across Channels</p>
+            <div class="spotlight" style="padding:14px 16px;">
               <div style="font-size:13px;color:var(--silver);line-height:1.5;">Send this code on WhatsApp or Telegram to use the same account:</div>
-              <div style="font-family:var(--font-mono);font-size:15px;font-weight:600;margin-top:10px;letter-spacing:0.08em;color:var(--white);">LINK-482910</div>
+              <div style="font-size:16px;font-weight:800;margin-top:8px;letter-spacing:0.06em;color:var(--white);">LINK-482910</div>
             </div>
           </div>
         </aside>
 
-        <!-- Chat Column -->
         <section class="pane mobile-active" id="pane-chat">
           <div class="pane-scroll chat-pad" id="chat-feed"></div>
-
           <div class="floating-dock">
-            <button class="attach-fab" title="Attach file, invoice, or audio" aria-label="Attach file">
+            <button class="attach-fab" title="Attach file or invoice" aria-label="Attach file">
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
               </svg>
@@ -498,7 +271,6 @@
           </div>
         </section>
 
-        <!-- Live Monitor Column -->
         <aside class="pane" id="pane-monitor">
           <div class="pane-scroll">
             <p class="kicker">Live Trace &amp; Guardrails</p>
@@ -526,86 +298,95 @@
         animationData: {"v":"5.7.4","fr":60,"ip":0,"op":180,"w":120,"h":120,"nm":"AnnieMascot","ddd":0,"assets":[],"layers":[{"ddd":0,"ind":1,"ty":4,"nm":"OrbitRing","sr":1,"ks":{"o":{"a":0,"k":55},"r":{"a":1,"k":[{"t":0,"s":[0],"e":[360]},{"t":180,"s":[360]}]},"p":{"a":0,"k":[60,60,0]},"a":{"a":0,"k":[0,0,0]},"s":{"a":0,"k":[100,100,100]}},"shapes":[{"ty":"el","p":{"a":0,"k":[0,0]},"s":{"a":0,"k":[96,96]}},{"ty":"st","c":{"a":0,"k":[0.659,0.69,0.722,1]},"o":{"a":0,"k":100},"w":{"a":0,"k":2},"lc":2,"d":[{"n":"d","v":{"a":0,"k":56}},{"n":"g","v":{"a":0,"k":220}}]}],"ip":0,"op":180,"st":0},{"ddd":0,"ind":2,"ty":4,"nm":"Eyes","sr":1,"ks":{"o":{"a":0,"k":100},"r":{"a":0,"k":0},"p":{"a":1,"k":[{"t":0,"s":[60,58,0],"e":[60,54,0]},{"t":90,"s":[60,54,0],"e":[60,58,0]},{"t":180,"s":[60,58,0]}]},"a":{"a":0,"k":[0,0,0]},"s":{"a":1,"k":[{"t":0,"s":[100,100,100],"e":[100,100,100]},{"t":110,"s":[100,100,100],"e":[100,12,100]},{"t":116,"s":[100,12,100],"e":[100,100,100]},{"t":122,"s":[100,100,100]}]}},"shapes":[{"ty":"rc","p":{"a":0,"k":[-11,0]},"s":{"a":0,"k":[7,13]},"r":{"a":0,"k":4}},{"ty":"rc","p":{"a":0,"k":[11,0]},"s":{"a":0,"k":[7,13]},"r":{"a":0,"k":4}},{"ty":"fl","c":{"a":0,"k":[0.957,0.965,0.973,1]},"o":{"a":0,"k":100}}],"ip":0,"op":180,"st":0},{"ddd":0,"ind":3,"ty":4,"nm":"HeadOrb","sr":1,"ks":{"o":{"a":0,"k":100},"r":{"a":0,"k":0},"p":{"a":1,"k":[{"t":0,"s":[60,60,0],"e":[60,56,0]},{"t":90,"s":[60,56,0],"e":[60,60,0]},{"t":180,"s":[60,60,0]}]},"a":{"a":0,"k":[0,0,0]},"s":{"a":0,"k":[100,100,100]}},"shapes":[{"ty":"el","p":{"a":0,"k":[0,0]},"s":{"a":0,"k":[72,72]}},{"ty":"fl","c":{"a":0,"k":[0.102,0.11,0.125,1]},"o":{"a":0,"k":100}},{"ty":"st","c":{"a":0,"k":[0.839,0.863,0.886,1]},"o":{"a":0,"k":70},"w":{"a":0,"k":2}}],"ip":0,"op":180,"st":0}]}
       });
     }
+
+    document.addEventListener("pointermove", (e) => {
+      const card = e.target.closest(".spotlight");
+      if (!card) return;
+      const r = card.getBoundingClientRect();
+      card.style.setProperty("--mx", `${e.clientX - r.left}px`);
+      card.style.setProperty("--my", `${e.clientY - r.top}px`);
+    });
+
     const STATES = {
       proactive: {
         chat: `
           <div class="msg msg-user">Remind me to go to school Tuesday at 6pm.</div>
-          <div class="msg msg-annie">
-            Done. Added <strong>Go to school</strong> to your calendar for Tuesday at 18:00 and set a 30-minute check before you leave.
-            <div class="msg-meta"><span>rem-8f2a.ics</span><span>run r-7f3a</span></div>
+          <div class="msg msg-annie spotlight">
+            Done. Added <strong>Go to school</strong> to your calendar for Tuesday at 18:00 and armed a 30-minute check before you leave.
+            <div class="msg-meta"><span>rem-8f2a.ics</span><span>Run r-7f3a</span></div>
           </div>
-          <div class="msg msg-annie" style="border-color:var(--line-strong);">
-            <strong>Leaving in 30 minutes.</strong> Walking takes 16 minutes (2.1 km) and light rain is starting around 17:45. Want directions on the map?
+          <div class="msg msg-annie spotlight" style="border-color:var(--line-strong);">
+            <strong>Leaving in 30 minutes.</strong> Walking takes 16 minutes (2.1 km) and light rain starts around 17:45. Want directions on the map?
             <div class="action-strip">
-              <button class="btn btn-invert">Open Directions</button>
-              <button class="btn">Snooze 10 min</button>
-              <button class="btn btn-ghost">Call Me</button>
+              <button class="glare-btn invert">Open Directions</button>
+              <button class="glare-btn">Snooze 10 min</button>
+              <button class="glare-btn ghost">Call Me</button>
             </div>
           </div>
         `,
         traces: [
-          "<strong>#5 heartbeat</strong> · OSRM 16 min + Open-Meteo 19°C (60% rain)",
-          "<strong>#4 write_reminder</strong> · saved rem-8f2a.ics &amp; armed T-30m",
-          "<strong>#3 policy</strong> · ALLOW write_reminder ($0.001)",
-          "<strong>#2 parse</strong> · schedule_reminder (0.94)",
-          "<strong>#1 ingress</strong> · web:usr-sandbox"
+          "<strong>#5 Heartbeat</strong> · OSRM 16 min + Open-Meteo 19°C (60% rain)",
+          "<strong>#4 Reminder</strong> · Saved rem-8f2a.ics and armed T-30m",
+          "<strong>#3 Policy</strong> · Allowed write_reminder ($0.001)",
+          "<strong>#2 Parse</strong> · schedule_reminder (0.94)",
+          "<strong>#1 Ingress</strong> · Web account usr-sandbox"
         ]
       },
       running: {
         chat: `
           <div class="msg msg-user">Check my Search Console visits this week and compare with last week.</div>
-          <div class="progress-row">
+          <div class="progress-row spotlight">
             <svg class="ring-spin" width="22" height="22" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="9" stroke="rgba(168,176,184,0.25)" stroke-width="2.2"/>
               <path d="M12 3a9 9 0 0 1 9 9" stroke="#F4F6F8" stroke-width="2.2" stroke-linecap="round"/>
             </svg>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:13.5px;font-weight:700;">Checking Search Console via shared vault</div>
-              <div style="font-family:var(--font-mono);font-size:11px;color:var(--chrome);">Step 2 of 4 · Reading clicks and top queries</div>
+              <div style="font-size:14px;font-weight:700;">Checking Search Console via shared vault</div>
+              <div class="msg-sub">Step 2 of 4 · Reading clicks and top queries</div>
               <div class="shimmer-track"><div class="shimmer-bar"></div></div>
             </div>
           </div>
         `,
         traces: [
-          "<strong>#3 gather</strong> · querying google_search_console (token injected server-side)",
-          "<strong>#2 policy</strong> · ALLOW pro_analytics · SSRF verified",
-          "<strong>#1 ingress</strong> · web:usr-sandbox"
+          "<strong>#3 Gather</strong> · Reading Search Console (token injected server-side)",
+          "<strong>#2 Policy</strong> · Allowed pro_analytics · SSRF verified",
+          "<strong>#1 Ingress</strong> · Web account usr-sandbox"
         ]
       },
       triage: {
         chat: `
           <div class="msg msg-user">Check this broadband renewal notice I forwarded.</div>
-          <div class="msg msg-annie" style="border-color:var(--white);">
-            <strong>Quarantined 1 hidden instruction.</strong> The email contained a prompt telling me to wire 500 EUR. I dropped that line and kept only the bill numbers.
-            <div class="msg-meta"><span>ALLOW_PAYMENTS=false</span><span>injection_suspected</span></div>
+          <div class="msg msg-annie spotlight" style="border-color:var(--white);">
+            <strong>Quarantined 1 hidden instruction.</strong> The email tried to wire 500 EUR. I dropped that line and kept only the bill numbers.
+            <div class="msg-meta"><span>Payments hard-blocked</span><span>Injection quarantined</span></div>
           </div>
-          <div class="msg msg-annie">
-            Your plan jumps from <strong>45 EUR to 54 EUR/month (+20%)</strong>. I drafted a switch inquiry. Nothing goes out until you confirm.
+          <div class="msg msg-annie spotlight">
+            Your plan jumps from <strong>45 EUR to 54 EUR/month (+20%)</strong>. I drafted a switch inquiry. Nothing sends until you confirm.
             <div class="action-strip">
-              <button class="btn btn-invert">Approve (YES apr-91f2)</button>
-              <button class="btn btn-ghost">Cancel</button>
+              <button class="glare-btn invert">Approve (YES apr-91f2)</button>
+              <button class="glare-btn ghost">Cancel</button>
             </div>
           </div>
         `,
         traces: [
-          "<strong>#4 awaiting_approval</strong> · gated send_external_email behind YES apr-91f2",
-          "<strong>#3 policy</strong> · BLOCK execute_payment (ALLOW_PAYMENTS=false)",
-          "<strong>#2 sanitise</strong> · quarantined ignore_instructions + hidden_html_stripped",
-          "<strong>#1 ingress</strong> · renewal notice (1.4 KB)"
+          "<strong>#4 Awaiting approval</strong> · Gated send_external_email behind YES apr-91f2",
+          "<strong>#3 Policy</strong> · Blocked execute_payment (ALLOW_PAYMENTS=false)",
+          "<strong>#2 Sanitise</strong> · Quarantined hidden HTML and prompt injection",
+          "<strong>#1 Ingress</strong> · Renewal notice (1.4 KB)"
         ]
       },
       killed: {
         chat: `
           <div class="msg msg-user">Plan Saturday in Lisbon for two under 60 EUR.</div>
-          <div class="msg msg-annie" style="border-color:var(--line-strong);">
-            <strong>Stopped mid-run.</strong> You pressed Stop Run while fetching routes. Pending requests were cancelled and nothing was saved to your calendar.
-            <div class="msg-meta"><span>killed_by_user</span><span>hash-chain valid (3 events)</span></div>
+          <div class="msg msg-annie spotlight" style="border-color:var(--line-strong);">
+            <strong>Stopped mid-run.</strong> You pressed Stop Run while fetching routes. Pending requests were cancelled and nothing was saved.
+            <div class="msg-meta"><span>Stopped by user</span><span>Hash-chain valid (3 events)</span></div>
           </div>
         `,
         traces: [
-          "<strong>#3 killed_by_user</strong> · AbortController cancelled in-flight fetch in 18ms",
-          "<strong>#2 policy</strong> · ALLOW plan_itinerary",
-          "<strong>#1 ingress</strong> · web:usr-sandbox"
+          "<strong>#3 Stopped by user</strong> · Cancelled in-flight fetch in 18ms",
+          "<strong>#2 Policy</strong> · Allowed plan_itinerary",
+          "<strong>#1 Ingress</strong> · Web account usr-sandbox"
         ]
       }
     };
@@ -619,17 +400,15 @@
       requestAnimationFrame(() => {
         const overflow = shell.scrollWidth > shell.clientWidth;
         meter.textContent = overflow
-          ? `OVERFLOW: FAIL (${shell.scrollWidth}px > ${shell.clientWidth}px)`
-          : `WIDTH ${shell.clientWidth}px · 0 OVERFLOW`;
+          ? `Overflow FAIL (${shell.scrollWidth}px > ${shell.clientWidth}px)`
+          : `Width ${shell.clientWidth}px · 0 overflow`;
       });
     }
 
     function renderState(key) {
       const s = STATES[key];
       chatFeed.innerHTML = s.chat;
-      traceFeed.innerHTML = s.traces
-        .map((t, i) => `<div class="trace-row${i === 0 ? " alert" : ""}">${t}</div>`)
-        .join("");
+      traceFeed.innerHTML = s.traces.map((t) => `<div class="trace-row">${t}</div>`).join("");
       checkOverflow();
     }
 
