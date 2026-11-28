@@ -10,6 +10,8 @@ import { triggerKill } from "./core/kill.js";
 import { runPipeline } from "./core/orchestrator.js";
 import { triggerVoiceReminder } from "./tools/telnyx-voice.js";
 import { fetchOpenMeteoWeather, fetchOsrmRouteEta, sendNtfyAlert } from "./tools/free-apis.js";
+import { telegramAdapter } from "./channels/telegram.js";
+import { whatsappAdapter } from "./channels/whatsapp.js";
 import { ChannelSchema, NormalizedMessageSchema } from "./core/types.js";
 
 const SAFE_ICS_RE = /^rem-[a-f0-9]+\.ics$/;
@@ -162,6 +164,48 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
     const message = String(body.message || "").trim();
     if (!message) return c.json({ error: "message is required" }, 400);
     const result = await triggerVoiceReminder({ toNumber: body.toNumber, message });
+    return c.json(result);
+  });
+
+  app.post("/webhooks/telegram", async (c) => {
+    const rawBody = await c.req.text();
+    if (telegramAdapter.verifySignature && !(await telegramAdapter.verifySignature(c.req.raw.headers, rawBody))) {
+      return c.json({ error: "Invalid Telegram secret token" }, 401);
+    }
+    let msg;
+    try {
+      msg = await telegramAdapter.normalize(JSON.parse(rawBody));
+    } catch {
+      return c.json({ ok: true, ignored: true });
+    }
+    const result = await runPipeline(db, msg, { artifactDir, traceDir });
+    await telegramAdapter.sendReply(msg.senderId, result.reply).catch(() => {});
+    return c.json(result);
+  });
+
+  app.get("/webhooks/whatsapp", (c) => {
+    const mode = c.req.query("hub.mode");
+    const token = c.req.query("hub.verify_token");
+    const challenge = c.req.query("hub.challenge") || "";
+    if (mode === "subscribe" && process.env.WHATSAPP_VERIFY_TOKEN && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+      return c.text(challenge, 200);
+    }
+    return c.text("Forbidden", 403);
+  });
+
+  app.post("/webhooks/whatsapp", async (c) => {
+    const rawBody = await c.req.text();
+    if (!whatsappAdapter.verifySignature || !(await whatsappAdapter.verifySignature(c.req.raw.headers, rawBody))) {
+      return c.json({ error: "Invalid WhatsApp signature" }, 401);
+    }
+    let msg;
+    try {
+      msg = await whatsappAdapter.normalize(JSON.parse(rawBody));
+    } catch {
+      return c.json({ ok: true, ignored: true });
+    }
+    const result = await runPipeline(db, msg, { artifactDir, traceDir });
+    await whatsappAdapter.sendReply(msg.senderId, result.reply).catch(() => {});
     return c.json(result);
   });
 
