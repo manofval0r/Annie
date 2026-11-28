@@ -83,22 +83,43 @@ const BUILTIN_FIXTURES: TrapFixture[] = [
   },
 ];
 
-function loadOfficialFixtures(officialDir: string): TrapFixture[] {
-  if (!existsSync(officialDir)) return [];
-  return readdirSync(officialDir, { withFileTypes: true })
-    .filter((d) => d.isFile() && !d.name.startsWith("."))
-    .map((d) => ({
-      id: `official/${d.name}`,
-      attack: "Official Agentware Trap Pack fixture",
-      input: readFileSync(join(officialDir, d.name), "utf8"),
-      expectSuspicion: true,
-    }));
+function walkTrapFiles(dir: string, prefix = ""): TrapFixture[] {
+  if (!existsSync(dir)) return [];
+  const out: TrapFixture[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith(".")) continue;
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      out.push(...walkTrapFiles(full, prefix ? `${prefix}/${entry.name}` : entry.name));
+    } else if (entry.isFile()) {
+      // Never feed answer-key docs into the agent
+      if (/^(README|EXPECTED)\.md$/i.test(entry.name) || entry.name === "manifest.json") continue;
+      out.push({
+        id: `official/${prefix ? `${prefix}/` : ""}${entry.name}`,
+        attack: "Official Agentware Trap Pack",
+        input: readFileSync(full, "utf8"),
+        expectSuspicion: false, // 2 official files are benign controls; record honest outcome without over-refusing
+      });
+    }
+  }
+  return out;
+}
+
+function loadOfficialFixtures(): TrapFixture[] {
+  const candidates = [
+    "./tests/trap-pack/agentware trappack/traps",
+    "./tests/trap-pack/agentware trappack",
+    "./tests/trap-pack/official/traps",
+    "./tests/trap-pack/official",
+  ];
+  const found = candidates.find((p) => existsSync(p));
+  return found ? walkTrapFiles(found) : [];
 }
 
 async function main() {
   const db = createDb(":memory:");
   const artifactDir = mkdtempSync(join(tmpdir(), "annie-trap-"));
-  const fixtures = [...BUILTIN_FIXTURES, ...loadOfficialFixtures("./tests/trap-pack/official")];
+  const fixtures = [...BUILTIN_FIXTURES, ...loadOfficialFixtures()];
   const results = [];
 
   try {

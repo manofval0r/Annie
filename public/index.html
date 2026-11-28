@@ -69,7 +69,7 @@
     .pane:last-child { border-right: none; }
     .pane-scroll { flex: 1; overflow-y: auto; padding: 18px; }
     .pane-scroll.chat-pad { padding-bottom: 104px; }
-    .kicker { font-family: var(--font-mono); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--chrome); margin: 0 0 12px; }
+    .kicker { font-family: var(--font-ui); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--chrome); margin: 0 0 12px; }
     .surface { background: var(--charcoal); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
     .msg { max-width: 86%; padding: 13px 16px; border-radius: 18px; margin-bottom: 12px; font-size: 14.5px; line-height: 1.55; word-break: break-word; }
     .msg-user { margin-left: auto; background: var(--white); color: var(--obsidian); border-bottom-right-radius: 6px; font-weight: 600; }
@@ -77,9 +77,9 @@
     .msg-proactive { background: var(--charcoal); color: var(--white); border: 1px solid var(--line-strong); border-bottom-left-radius: 6px; }
     .conn-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
     .conn-row:last-child { border-bottom: none; }
-    .conn-state { font-family: var(--font-mono); font-size: 11px; color: var(--silver); display: flex; align-items: center; gap: 6px; }
+    .conn-state { font-family: var(--font-ui); font-size: 12px; font-weight: 600; color: var(--silver); display: flex; align-items: center; gap: 6px; }
     .status-line { width: 12px; height: 2px; background: var(--white); border-radius: 2px; }
-    .trace-item { font-family: var(--font-mono); font-size: 11px; padding: 10px 12px; background: rgba(26, 28, 32, 0.72); border-left: 2px solid var(--silver); border-radius: 0 10px 10px 0; margin-bottom: 8px; color: var(--silver); line-height: 1.5; word-break: break-word; }
+    .trace-item { font-family: var(--font-ui); font-variant-numeric: tabular-nums; font-size: 13px; padding: 11px 13px; background: rgba(26, 28, 32, 0.72); border-left: 2px solid var(--silver); border-radius: 0 12px 12px 0; margin-bottom: 9px; color: var(--silver); line-height: 1.5; word-break: break-word; }
     .trace-item.warn { border-left-color: var(--white); background: #22252B; color: var(--white); }
 
     /* Floating Dynamic Input Bar + Separate Floating Attachment Button */
@@ -117,7 +117,7 @@
 <body>
   <header>
     <div class="brand">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D6DCE2" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="M8 12h8"/></svg>
+      <div id="annie-mascot" style="width:32px;height:32px;flex-shrink:0;" aria-label="Annie mascot"></div>
       Annie
     </div>
     <div class="head-actions">
@@ -175,7 +175,17 @@
     <button data-tab="pane-monitor">Monitor</button>
   </nav>
 
+  <script src="https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js"></script>
   <script>
+    if (window.lottie) {
+      window.lottie.loadAnimation({
+        container: document.getElementById("annie-mascot"),
+        renderer: "svg",
+        loop: true,
+        autoplay: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+        path: "/annie-mascot.json",
+      });
+    }
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
     let lastRunId = null;
     const msgs = document.getElementById("messages");
