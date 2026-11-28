@@ -52,7 +52,7 @@
     .btn {
       position: relative; overflow: hidden;
       font-family: var(--font-ui); font-size: 12.5px; font-weight: 700;
-      padding: 8px 14px; min-height: 38px; border-radius: 999px;
+      padding: 8px 14px; min-height: 44px; border-radius: 999px;
       border: 1px solid var(--line-strong); background: var(--charcoal); color: var(--white);
       cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
       transition: transform 160ms var(--ease-out), border-color 160ms var(--ease-out);
@@ -64,7 +64,7 @@
     }
     .btn:hover { border-color: var(--white); transform: translateY(-1px); }
     .btn:hover::after { transform: translateX(130%); }
-    .btn:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+    .btn:focus-visible, .attach-fab:focus-visible, .send-fab:focus-visible, .mobile-tabs button:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
     .btn-invert { background: var(--white); color: var(--obsidian); border-color: var(--white); }
     .btn-ghost { background: transparent; border-color: var(--line); color: var(--silver); }
 
@@ -90,7 +90,12 @@
       animation: fadeUp 220ms var(--ease-out) both;
     }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    @media (prefers-reduced-motion: reduce) { .msg { animation: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .msg { animation: none; }
+      .btn, .btn::after, .attach-fab, .send-fab, .input-pill, .spotlight::before { transition: none !important; }
+      .btn:hover, .attach-fab:hover, .send-fab:hover, .input-pill:focus-within { transform: none; }
+      .btn::after { display: none; }
+    }
     .msg-user { margin-left: auto; background: var(--white); color: var(--obsidian); border-bottom-right-radius: 6px; font-weight: 700; }
     .msg-annie { border-bottom-left-radius: 6px; }
     .msg-proactive { border-color: var(--line-strong); border-bottom-left-radius: 6px; }
@@ -130,7 +135,7 @@
     .input-pill:focus-within { border-color: var(--white); transform: translateY(-1px); }
     .input-pill input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--white); font-family: var(--font-ui); font-size: 14px; }
     .input-pill input::placeholder { color: var(--chrome); }
-    .send-fab { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--white); color: var(--obsidian); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: transform 150ms var(--ease-out); }
+    .send-fab { width: 44px; height: 44px; border-radius: 50%; border: none; background: var(--white); color: var(--obsidian); display: grid; place-items: center; cursor: pointer; flex-shrink: 0; transition: transform 150ms var(--ease-out); }
     .send-fab:hover { transform: scale(1.07); }
 
     .mobile-tabs { display: none; flex-shrink: 0; }
@@ -211,9 +216,9 @@
   </main>
 
   <nav class="mobile-tabs">
-    <button class="active" data-tab="pane-chat">Chat</button>
-    <button data-tab="pane-vault">Accounts</button>
-    <button data-tab="pane-monitor">Monitor</button>
+    <button class="active" aria-pressed="true" data-tab="pane-chat">Chat</button>
+    <button aria-pressed="false" data-tab="pane-vault">Accounts</button>
+    <button aria-pressed="false" data-tab="pane-monitor">Monitor</button>
   </nav>
 
   <script src="https://unpkg.com/lottie-web@5.12.2/build/player/lottie.min.js"></script>
@@ -229,13 +234,23 @@
     }
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
 
-    document.addEventListener("pointermove", (e) => {
-      const card = e.target.closest(".spotlight");
-      if (!card) return;
-      const r = card.getBoundingClientRect();
-      card.style.setProperty("--mx", `${e.clientX - r.left}px`);
-      card.style.setProperty("--my", `${e.clientY - r.top}px`);
-    });
+    if (window.matchMedia("(hover: hover)").matches && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      let rafPending = false;
+      let lastEvent = null;
+      document.addEventListener("pointermove", (e) => {
+        lastEvent = e;
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+          rafPending = false;
+          const card = lastEvent?.target?.closest?.(".spotlight");
+          if (!card) return;
+          const r = card.getBoundingClientRect();
+          card.style.setProperty("--mx", `${lastEvent.clientX - r.left}px`);
+          card.style.setProperty("--my", `${lastEvent.clientY - r.top}px`);
+        });
+      }, { passive: true });
+    }
 
     let lastRunId = null;
     const msgs = document.getElementById("messages");
@@ -428,11 +443,30 @@
       }
     });
 
+    document.getElementById("btn-google").addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const res = await fetch("/auth/google", { redirect: "manual" });
+        if (res.type === "opaqueredirect" || (res.status >= 300 && res.status < 400)) {
+          window.location.href = "/auth/google";
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        addMsg(data.message || "Google OAuth is not configured yet. Click Sandbox to test locally.", "msg-annie spotlight");
+      } catch (err) {
+        addMsg(`Google connect error: ${err.message}`, "msg-annie spotlight");
+      }
+    });
+
     document.querySelectorAll(".mobile-tabs button").forEach((btn) => {
       btn.addEventListener("click", () => {
-        document.querySelectorAll(".mobile-tabs button").forEach((b) => b.classList.remove("active"));
+        document.querySelectorAll(".mobile-tabs button").forEach((b) => {
+          b.classList.remove("active");
+          b.setAttribute("aria-pressed", "false");
+        });
         document.querySelectorAll(".pane").forEach((p) => p.classList.remove("active"));
         btn.classList.add("active");
+        btn.setAttribute("aria-pressed", "true");
         document.getElementById(btn.dataset.tab).classList.add("active");
       });
     });
