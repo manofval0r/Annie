@@ -88,6 +88,19 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
     return c.body(readFileSync(p, "utf8"), 200, { "Content-Type": "application/json" });
   });
 
+  app.get("/assets/:filename", (c) => {
+    const filename = c.req.param("filename");
+    if (!/^[a-zA-Z0-9._-]+$/.test(filename)) return c.notFound();
+    const p = join(publicDir, "assets", filename);
+    if (!existsSync(p)) return c.notFound();
+    const ct = filename.endsWith(".js")
+      ? "application/javascript; charset=utf-8"
+      : filename.endsWith(".css")
+        ? "text/css; charset=utf-8"
+        : "application/octet-stream";
+    return c.body(readFileSync(p), 200, { "Content-Type": ct });
+  });
+
   app.post("/message", async (c) => {
     const raw = await c.req.json().catch(() => null);
     const parsed = NormalizedMessageSchema.safeParse({

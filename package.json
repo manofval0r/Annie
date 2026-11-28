@@ -9,8 +9,10 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:web": "npm run dev --prefix web",
     "start": "tsx src/index.ts",
     "build": "tsc --noEmit",
+    "build:web": "npm run build --prefix web",
     "test": "vitest run",
     "test:watch": "vitest",
     "replay": "tsx src/cli/replay.ts",
