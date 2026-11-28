@@ -42,16 +42,23 @@ export const ALLOWED_OUTBOUND_HOSTS: ReadonlySet<string> = new Set([
 
 const PRIVATE_IP_PATTERNS = [
   /^localhost$/i,
+  /^0\./,
   /^127\./,
   /^10\./,
   /^192\.168\./,
   /^169\.254\./,
   /^172\.(1[6-9]|2\d|3[01])\./,
-  /^0\.0\.0\.0$/,
+  /^::$/,
   /^::1$/,
+  /^::ffff:/i,
   /^f[cd][0-9a-f]{2}:/i,
-  /^fe80:/i,
+  /^fe[89ab][0-9a-f]:/i,
 ];
+
+export function isPrivateHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  return PRIVATE_IP_PATTERNS.some((re) => re.test(host));
+}
 
 const PAYMENT_TOOLS = new Set(["execute_payment", "stripe_charge", "send_money"]);
 

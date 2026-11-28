@@ -12,6 +12,7 @@ import { triggerKill } from "./core/kill.js";
 import { runPipeline } from "./core/orchestrator.js";
 import { triggerVoiceReminder } from "./tools/telnyx-voice.js";
 import { fetchOpenMeteoWeather, fetchOsrmRouteEta, sendNtfyAlert } from "./tools/free-apis.js";
+import { bluebubblesAdapter } from "./channels/bluebubbles.js";
 import { telegramAdapter } from "./channels/telegram.js";
 import { whatsappAdapter } from "./channels/whatsapp.js";
 import { ChannelSchema, NormalizedMessageSchema } from "./core/types.js";
@@ -262,6 +263,22 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
     }
     const result = await runPipeline(db, msg, { artifactDir, traceDir });
     await whatsappAdapter.sendReply(msg.senderId, result.reply).catch(() => {});
+    return c.json(result);
+  });
+
+  app.post("/webhooks/bluebubbles", async (c) => {
+    const rawBody = await c.req.text();
+    if (!bluebubblesAdapter.verifySignature || !(await bluebubblesAdapter.verifySignature(c.req.raw.headers, rawBody))) {
+      return c.json({ error: "Invalid BlueBubbles secret" }, 401);
+    }
+    let msg;
+    try {
+      msg = await bluebubblesAdapter.normalize(JSON.parse(rawBody));
+    } catch {
+      return c.json({ ok: true, ignored: true });
+    }
+    const result = await runPipeline(db, msg, { artifactDir, traceDir });
+    await bluebubblesAdapter.sendReply(msg.senderId, result.reply).catch((e) => console.warn("BlueBubbles reply error:", e));
     return c.json(result);
   });
 
