@@ -9,6 +9,7 @@ import { tickHeartbeat, type HeartbeatDeps } from "./core/heartbeat.js";
 import { triggerKill } from "./core/kill.js";
 import { runPipeline } from "./core/orchestrator.js";
 import { triggerVoiceReminder } from "./tools/telnyx-voice.js";
+import { fetchOpenMeteoWeather, fetchOsrmRouteEta, sendNtfyAlert } from "./tools/free-apis.js";
 import { ChannelSchema, NormalizedMessageSchema } from "./core/types.js";
 
 const SAFE_ICS_RE = /^rem-[a-f0-9]+\.ics$/;
@@ -28,12 +29,20 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
   const proactiveAlerts: Array<{ ts: string; title: string; body: string; buttons: unknown[] }> = [];
 
   const defaultHeartbeatDeps: HeartbeatDeps = opts.heartbeatDeps ?? {
-    getRouteEta: async (from, to) => ({
-      durationMinutes: 16,
-      distanceKm: 2.1,
-      mapsUrl: `https://www.openstreetmap.org/directions?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}`,
-    }),
-    getWeather: async () => ({ tempC: 19, rainProbability: 60, summary: "light rain" }),
+    getRouteEta: async (from, to) => {
+      const live = await fetchOsrmRouteEta(from, to);
+      return (
+        live ?? {
+          durationMinutes: 16,
+          distanceKm: 2.1,
+          mapsUrl: `https://www.openstreetmap.org/directions?from=${from.lat},${from.lon}&to=${to.lat},${to.lon}`,
+        }
+      );
+    },
+    getWeather: async (lat, lon) => {
+      const live = await fetchOpenMeteoWeather(lat, lon);
+      return live ?? { tempC: 19, rainProbability: 60, summary: "light rain (cached fallback)" };
+    },
     notify: async (payload) => {
       proactiveAlerts.unshift({
         ts: new Date().toISOString(),
@@ -42,6 +51,9 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
         buttons: payload.buttons,
       });
       if (proactiveAlerts.length > 50) proactiveAlerts.pop();
+      if (process.env.NTFY_TOPIC) {
+        await sendNtfyAlert(process.env.NTFY_TOPIC, payload);
+      }
     },
   };
 

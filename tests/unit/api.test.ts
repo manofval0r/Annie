@@ -18,7 +18,22 @@ describe("Hono HTTP API, Sandbox, Artifacts & Proactive Tick", () => {
 
   it("runs sandbox -> reminder -> .ics download -> proactive T-30m tick end-to-end", async () => {
     const db = createDb(":memory:");
-    const app = createApp(db, { artifactDir: makeDir(), traceDir: makeDir() });
+    const alerts: Array<{ body: string }> = [];
+    const app = createApp(db, {
+      artifactDir: makeDir(),
+      traceDir: makeDir(),
+      heartbeatDeps: {
+        getRouteEta: async () => ({
+          durationMinutes: 16,
+          distanceKm: 2.1,
+          mapsUrl: "https://www.openstreetmap.org/directions?from=38.71,-9.13&to=38.73,-9.14",
+        }),
+        getWeather: async () => ({ tempC: 19, rainProbability: 60, summary: "light rain" }),
+        notify: async (p) => {
+          alerts.push({ body: p.body });
+        },
+      },
+    });
 
     const sbRes = await app.request("/api/sandbox", { method: "POST" });
     expect(sbRes.status).toBe(200);
@@ -58,7 +73,7 @@ describe("Hono HTTP API, Sandbox, Artifacts & Proactive Tick", () => {
     expect(tickRes.status).toBe(200);
     const tick = (await tickRes.json()) as { processed: number; alerts: Array<{ body: string }> };
     expect(tick.processed).toBe(1);
-    expect(tick.alerts[0].body).toContain("directions");
+    expect(alerts[0].body).toContain("directions");
 
     // Kill switch rejects cross-user caller, accepts owner
     const killDenied = await app.request(`/kill/${run.runId}`, {
