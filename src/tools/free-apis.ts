@@ -7,15 +7,20 @@ function combineSignal(signal?: AbortSignal, timeoutMs = 8_000): AbortSignal {
   return signal ? AbortSignal.any([signal, t]) : t;
 }
 
+function isValidCoord(lat: number, lon: number): boolean {
+  return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+}
+
 /**
- * Fetches driving/walking ETA from public keyless OSRM demo server.
- * Enforces SSRF allow-list, 8s timeout, and redirect: "error".
+ * Fetches walking ETA from public keyless OSRM demo server.
+ * Enforces coordinate bounds, SSRF allow-list, 8s timeout, and redirect: "error".
  */
 export async function fetchOsrmRouteEta(
   from: { lat: number; lon: number },
   to: { lat: number; lon: number },
   signal?: AbortSignal
 ): Promise<RouteEtaResult | null> {
+  if (!isValidCoord(from.lat, from.lon) || !isValidCoord(to.lat, to.lon)) return null;
   const url = `https://router.project-osrm.org/route/v1/foot/${from.lon},${from.lat};${to.lon},${to.lat}?overview=false`;
   const check = isUrlAllowed(url);
   if (!check.allowed) throw new Error(`SSRF blocked OSRM: ${check.reason}`);
@@ -50,6 +55,7 @@ export async function fetchOpenMeteoWeather(
   lon: number,
   signal?: AbortSignal
 ): Promise<WeatherResult | null> {
+  if (!isValidCoord(lat, lon)) return null;
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation_probability&forecast_days=1`;
   const check = isUrlAllowed(url);
   if (!check.allowed) throw new Error(`SSRF blocked Open-Meteo: ${check.reason}`);
@@ -72,7 +78,8 @@ export async function fetchOpenMeteoWeather(
 }
 
 /**
- * Sends a proactive push notification via keyless ntfy.sh with interactive Click/Action headers.
+ * Sends a proactive push notification via keyless ntfy.sh JSON publish API
+ * (avoids HTTP header CRLF/Unicode/comma-delimiter issues).
  */
 export async function sendNtfyAlert(
   topic: string,
@@ -81,25 +88,37 @@ export async function sendNtfyAlert(
 ): Promise<boolean> {
   const cleanTopic = topic.replace(/[^a-zA-Z0-9_-]/g, "");
   if (!cleanTopic) return false;
-  const url = `https://ntfy.sh/${cleanTopic}`;
+  const url = "https://ntfy.sh/";
   const check = isUrlAllowed(url);
   if (!check.allowed) throw new Error(`SSRF blocked ntfy: ${check.reason}`);
 
-  const dirUrl = payload.buttons?.find((b) => b.url?.startsWith("https://"))?.url;
-  const headers: Record<string, string> = {
-    Title: payload.title.slice(0, 120),
-    Priority: "high",
+  let safeDirUrl: string | undefined;
+  const rawUrl = payload.buttons?.find((b) => b.url)?.url;
+  if (rawUrl) {
+    try {
+      const parsed = new URL(rawUrl);
+      if (parsed.protocol === "https:") safeDirUrl = parsed.toString();
+    } catch {
+      // ignore invalid button URL
+    }
+  }
+
+  const body: Record<string, unknown> = {
+    topic: cleanTopic,
+    title: payload.title.replace(/[\r\n]+/g, " ").slice(0, 120),
+    message: payload.body,
+    priority: 4,
   };
-  if (dirUrl) {
-    headers.Click = dirUrl;
-    headers.Actions = `view, Open Directions, ${dirUrl}`;
+  if (safeDirUrl) {
+    body.click = safeDirUrl;
+    body.actions = [{ action: "view", label: "Open Directions", url: safeDirUrl }];
   }
 
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers,
-      body: payload.body,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
       signal: combineSignal(signal),
       redirect: "error",
     });
