@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+    font-family: "Nunito", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+  background: #1A1C20;
+  border: 1px solid rgba(168, 176, 184, 0.16);
+  transition: border-color 180ms cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    240px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(214, 220, 226, 0.12),
+    transparent 70%
+  );
+  transition: opacity 220ms cubic-bezier(0.05, 0.7, 0.1, 1);
+}
+.spotlight-card:hover {
+  border-color: rgba(214, 220, 226, 0.36);
+}
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight-card,
+  .spotlight-card::before {
+    transition: none !important;
+  }
+}
