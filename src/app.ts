@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import { timingSafeEqual } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
@@ -169,7 +170,7 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
 
   app.post("/webhooks/telegram", async (c) => {
     const rawBody = await c.req.text();
-    if (telegramAdapter.verifySignature && !(await telegramAdapter.verifySignature(c.req.raw.headers, rawBody))) {
+    if (!telegramAdapter.verifySignature || !(await telegramAdapter.verifySignature(c.req.raw.headers, rawBody))) {
       return c.json({ error: "Invalid Telegram secret token" }, 401);
     }
     let msg;
@@ -179,15 +180,18 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
       return c.json({ ok: true, ignored: true });
     }
     const result = await runPipeline(db, msg, { artifactDir, traceDir });
-    await telegramAdapter.sendReply(msg.senderId, result.reply).catch(() => {});
+    await telegramAdapter.sendReply(msg.senderId, result.reply).catch((e) => console.warn("Telegram reply error:", e));
     return c.json(result);
   });
 
   app.get("/webhooks/whatsapp", (c) => {
     const mode = c.req.query("hub.mode");
-    const token = c.req.query("hub.verify_token");
+    const token = c.req.query("hub.verify_token") || "";
     const challenge = c.req.query("hub.challenge") || "";
-    if (mode === "subscribe" && process.env.WHATSAPP_VERIFY_TOKEN && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+    const expected = process.env.WHATSAPP_VERIFY_TOKEN || "";
+    const a = Buffer.from(token, "utf8");
+    const b = Buffer.from(expected, "utf8");
+    if (mode === "subscribe" && expected && a.length === b.length && timingSafeEqual(a, b)) {
       return c.text(challenge, 200);
     }
     return c.text("Forbidden", 403);

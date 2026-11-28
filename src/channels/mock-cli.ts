@@ -8,20 +8,23 @@ if (!text) {
 }
 
 const db = createDb();
-const res = await runPipeline(
-  db,
-  {
-    channel: "mock",
-    senderId: "cli-judge",
-    text,
-    messageId: `cli-${Date.now()}`,
-    timestamp: new Date().toISOString(),
-  },
-  { traceDir: "./traces" }
-);
+try {
+  const res = await runPipeline(
+    db,
+    {
+      channel: "mock",
+      senderId: "cli-judge",
+      text,
+      messageId: `cli-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+    },
+    { traceDir: "./traces" }
+  );
 
-console.log(`[Annie · ${res.runId} · ${res.status}]`);
-console.log(res.reply);
-if (res.icsPath) console.log(`Calendar file: ${res.icsPath}`);
-console.log(`Replay trace:  npm run replay -- ${res.runId}`);
-db.close();
+  console.log(`[Annie · ${res.runId} · ${res.status}]`);
+  console.log(res.reply);
+  if (res.icsPath) console.log(`Calendar file: ${res.icsPath}`);
+  console.log(`Replay trace:  npm run replay -- ${res.runId}`);
+} finally {
+  db.close();
+}
