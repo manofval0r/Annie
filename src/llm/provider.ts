@@ -74,7 +74,46 @@ export function parseIntentDeterministic(rawText: string, now = new Date()): Par
     };
   }
 
-  // 5. Pro Analytics (Search Console / AdSense / TikTok via Treg)
+  // 5. GitHub check
+  if (/\b(github|pull\s+requests?|open\s+prs?|repo\s+issues?)\b/i.test(lower)) {
+    const repoMatch = text.match(/\b([a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+)\b/);
+    return {
+      intent: "github_check",
+      confidence: 0.93,
+      params: { repo: repoMatch ? repoMatch[1] : undefined },
+    };
+  }
+
+  // 6. Gmail / Inbox check
+  if (/\b(gmail|unread\s+emails?|check\s+(?:my\s+)?(?:mail|inbox|emails?))\b/i.test(lower)) {
+    return {
+      intent: "gmail_check",
+      confidence: 0.93,
+      params: {},
+    };
+  }
+
+  // 7. Grocery / Nutrition lookup (OpenFoodFacts)
+  if (/\b(nutri-?score|allergens?|ingredients?\s+(?:in|of)|grocery|barcode)\b/i.test(lower)) {
+    const query = text.replace(/^.*?(?:in|of|for|barcode)\s+/i, "").trim() || text;
+    return {
+      intent: "grocery_check",
+      confidence: 0.9,
+      params: { query },
+    };
+  }
+
+  // 8. Factual info lookup (Wikipedia)
+  if (/^(?:what\s+is|who\s+is|look\s+up|wiki)\s+(.+)/i.test(text)) {
+    const topic = text.replace(/^(?:what\s+is|who\s+is|look\s+up|wiki)\s+/i, "").replace(/\?+$/, "").trim();
+    return {
+      intent: "lookup_info",
+      confidence: 0.9,
+      params: { topic },
+    };
+  }
+
+  // 9. Pro Analytics (Search Console / AdSense / TikTok via Treg)
   if (/\b(search\s+console|adsense|tiktok|site\s+traffic|analytics|visits)\b/i.test(lower)) {
     const source = lower.includes("tiktok")
       ? "tiktok"
