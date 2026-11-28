@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { getOAuthToken } from "../auth/vault.js";
 import { isUrlAllowed } from "../core/policy.js";
+import { sanitiseExternalData } from "../core/sanitise.js";
 
 export type ProAnalyticsSource = "search_console" | "adsense" | "tiktok";
 
@@ -27,7 +28,7 @@ const SANDBOX_SUMMARIES: Record<ProAnalyticsSource, string> = {
 
 /**
  * Queries Treg (treg.to) for Pro/Creator analytics using server-side token injection.
- * Falls back cleanly to Sandbox summaries when no live TREG_TOKEN is configured.
+ * Sanitises external payloads before returning and falls back to Sandbox summaries when unconfigured.
  */
 export async function queryProAnalytics(
   db: DatabaseSync,
@@ -37,11 +38,10 @@ export async function queryProAnalytics(
   signal?: AbortSignal
 ): Promise<ProAnalyticsResult> {
   const vaultToken = getOAuthToken(db, userId, "treg");
-  const token =
-    vaultToken && !vaultToken.startsWith("sandbox_")
-      ? vaultToken
-      : process.env.TREG_TOKEN || "";
-
+  if (vaultToken?.startsWith("sandbox_")) {
+    return { source, mode: "sandbox", summary: SANDBOX_SUMMARIES[source] };
+  }
+  const token = vaultToken || process.env.TREG_TOKEN || "";
   if (!token) {
     return { source, mode: "sandbox", summary: SANDBOX_SUMMARIES[source] };
   }
@@ -75,18 +75,19 @@ export async function queryProAnalytics(
     }
 
     const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-    const preview = JSON.stringify(data).slice(0, 240);
+    const clean = sanitiseExternalData(JSON.stringify(data)).clean.slice(0, 240);
     return {
       source,
       mode: "live_treg",
-      summary: `Live Treg (${endpoint}): ${preview}`,
+      summary: `Live Treg (${endpoint}): ${clean}`,
     };
   } catch (err) {
     if (signal?.aborted) throw err;
+    const reason = err instanceof Error && err.name === "TimeoutError" ? "timed out" : "failed";
     return {
       source,
       mode: "sandbox",
-      summary: `Treg request timed out; showing cached baseline. ${SANDBOX_SUMMARIES[source]}`,
+      summary: `Treg request ${reason}; showing cached baseline. ${SANDBOX_SUMMARIES[source]}`,
     };
   }
 }

@@ -29,12 +29,15 @@ describe("Treg Pro Analytics Adapter", () => {
 
     const mockFetch = vi.fn().mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ videos: [{ views: 42000 }] }),
+      json: async () => ({
+        videos: [{ views: 42000, caption: "great video sk-1234567890abcdef12345678" }],
+      }),
     });
     vi.stubGlobal("fetch", mockFetch);
 
     const live = await queryProAnalytics(db, "usr-pro", "tiktok", "my latest video");
     expect(live.mode).toBe("live_treg");
+    expect(live.summary).not.toContain("sk-1234567890abcdef12345678");
     expect(mockFetch.mock.calls[0][0]).toBe("https://treg.to/call/anyapi.tiktok.search.videos");
     expect(mockFetch.mock.calls[0][1].headers["X-Treg-Token"]).toBe("treg_live_secret_123");
 
