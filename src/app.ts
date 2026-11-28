@@ -80,6 +80,12 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
     return c.body(readFileSync(p, "utf8"), 200, { "Content-Type": "application/javascript" });
   });
 
+  app.get("/annie-mascot.json", (c) => {
+    const p = join(publicDir, "annie-mascot.json");
+    if (!existsSync(p)) return c.notFound();
+    return c.body(readFileSync(p, "utf8"), 200, { "Content-Type": "application/json" });
+  });
+
   app.post("/message", async (c) => {
     const raw = await c.req.json().catch(() => null);
     const parsed = NormalizedMessageSchema.safeParse({
