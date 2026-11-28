@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createApp } from "../../src/app.js";
 import { createDb } from "../../src/db/client.js";
-import { bluebubblesAdapter } from "../../src/channels/bluebubbles.js";
+import { bluebubblesAdapter, validateBlueBubblesUrl } from "../../src/channels/bluebubbles.js";
 
 describe("BlueBubbles iMessage Channel Adapter", () => {
   const tempDirs: string[] = [];
@@ -62,5 +62,20 @@ describe("BlueBubbles iMessage Channel Adapter", () => {
     expect(data.status).toBe("completed");
     expect(data.intent).toBe("schedule_reminder");
     db.close();
+  });
+
+  it("blocks private IPv4/IPv6/0.0.0.0 SSRF URLs and tolerates NaN dateCreated", async () => {
+    expect(validateBlueBubblesUrl("http://localhost:1234")).toBe("http://localhost:1234");
+    expect(validateBlueBubblesUrl("https://0.0.0.0:1234")).toBeNull();
+    expect(validateBlueBubblesUrl("https://[fc00::1]")).toBeNull();
+    expect(validateBlueBubblesUrl("https://[::ffff:169.254.169.254]")).toBeNull();
+    expect(validateBlueBubblesUrl("https://bb.example.com?extra=1")).toBeNull();
+
+    const msg = await bluebubblesAdapter.normalize({
+      type: "new-message",
+      data: { guid: "m-nan", text: "Hello", isFromMe: false, dateCreated: Number.NaN, chats: [{ guid: "c1" }] },
+    });
+    expect(Number.isFinite(Date.parse(msg.timestamp))).toBe(true);
+    expect(() => bluebubblesAdapter.normalize({ type: "typing-indicator", data: {} })).toThrow();
   });
 });
