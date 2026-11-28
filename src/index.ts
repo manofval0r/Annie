@@ -4,6 +4,7 @@ import { tickHeartbeat } from "./core/heartbeat.js";
 import { runPipeline } from "./core/orchestrator.js";
 import { telegramAdapter } from "./channels/telegram.js";
 import { createDb } from "./db/client.js";
+import { isUrlAllowed } from "./core/policy.js";
 import { fetchOpenMeteoWeather, fetchOsrmRouteEta, sendNtfyAlert } from "./tools/free-apis.js";
 
 const port = Number(process.env.PORT || "3000");
@@ -39,21 +40,24 @@ async function startTelegramPolling() {
   console.log("Telegram long-polling enabled.");
   while (true) {
     try {
-      const res = await fetch(
-        `https://api.telegram.org/bot${token}/getUpdates?timeout=25&offset=${offset}`,
-        { signal: AbortSignal.timeout(30_000), redirect: "error" }
-      );
-      if (res.ok) {
-        const data = (await res.json()) as { ok?: boolean; result?: Array<{ update_id: number }> };
-        for (const update of data.result ?? []) {
-          offset = update.update_id + 1;
-          try {
-            const msg = await telegramAdapter.normalize(update);
-            const result = await runPipeline(db, msg, { traceDir: "./traces" });
-            await telegramAdapter.sendReply(msg.senderId, result.reply);
-          } catch {
-            // ignore non-text updates
-          }
+      const pollUrl = `https://api.telegram.org/bot${token}/getUpdates?timeout=25&offset=${offset}`;
+      if (!isUrlAllowed(pollUrl).allowed) break;
+      const res = await fetch(pollUrl, { signal: AbortSignal.timeout(30_000), redirect: "error" });
+      if (!res.ok) {
+        console.warn(`Telegram polling HTTP ${res.status}`);
+        if (res.status === 401 || res.status === 409) break;
+        await new Promise((r) => setTimeout(r, 4_000));
+        continue;
+      }
+      const data = (await res.json()) as { ok?: boolean; result?: Array<{ update_id: number }> };
+      for (const update of data.result ?? []) {
+        offset = update.update_id + 1;
+        try {
+          const msg = await telegramAdapter.normalize(update);
+          const result = await runPipeline(db, msg, { traceDir: "./traces" });
+          await telegramAdapter.sendReply(msg.senderId, result.reply);
+        } catch {
+          // ignore non-text updates
         }
       }
     } catch {

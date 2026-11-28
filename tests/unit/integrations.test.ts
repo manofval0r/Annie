@@ -5,6 +5,7 @@ import { queryGitHub } from "../../src/tools/github.js";
 import { fetchGmailInbox } from "../../src/tools/google.js";
 import { fetchFxRate, lookupGroceryProduct, lookupWikipedia } from "../../src/tools/knowledge.js";
 import { buildWeekendPlan } from "../../src/tools/planner.js";
+import { parseIntentDeterministic } from "../../src/llm/provider.js";
 
 describe("Real Integrations (GitHub, Gmail, Wikipedia, OpenFoodFacts, FX, Weekend Planner)", () => {
   afterEach(() => {
@@ -86,5 +87,13 @@ describe("Real Integrations (GitHub, Gmail, Wikipedia, OpenFoodFacts, FX, Weeken
     expect(plan.partial).toBe(false);
     expect(plan.summary).toContain("Lisbon");
     expect(plan.summary).toContain("Indoor museum/gallery swap");
+  });
+
+  it("routes domain questions before Wikipedia lookup_info", () => {
+    expect(parseIntentDeterministic("What is my site traffic?").intent).toBe("pro_analytics");
+    expect(parseIntentDeterministic("What is my insurance renewal?").intent).toBe("triage_renewal");
+    expect(parseIntentDeterministic("What is Lisbon?").intent).toBe("lookup_info");
+    expect(parseIntentDeterministic("Check github manofval0r/Annie").intent).toBe("github_check");
+    expect(parseIntentDeterministic("Check my unread emails").intent).toBe("gmail_check");
   });
 });

@@ -6,9 +6,6 @@ function combineSignal(signal?: AbortSignal, timeoutMs = 8_000): AbortSignal {
   return signal ? AbortSignal.any([signal, t]) : t;
 }
 
-/**
- * Looks up concise factual summaries via keyless Wikipedia REST API.
- */
 export async function lookupWikipedia(topic: string, signal?: AbortSignal): Promise<string> {
   const clean = topic.trim().replace(/\s+/g, "_").slice(0, 80);
   if (!clean) return "Tell me what topic you want me to look up.";
@@ -23,17 +20,15 @@ export async function lookupWikipedia(topic: string, signal?: AbortSignal): Prom
     });
     if (!res.ok) return `Could not find a Wikipedia summary for "${topic}".`;
     const data = (await res.json()) as { title?: string; extract?: string };
-    const safe = sanitiseExternalData(data.extract || "").clean.slice(0, 320);
-    return safe ? `${data.title || topic}: ${safe}` : `No summary available for "${topic}".`;
+    const safeTitle = sanitiseExternalData(data.title || topic).clean.slice(0, 80);
+    const safeExtract = sanitiseExternalData(data.extract || "").clean.slice(0, 320);
+    return safeExtract ? `${safeTitle}: ${safeExtract}` : `No summary available for "${safeTitle}".`;
   } catch (err) {
     if (signal?.aborted) throw err;
     return `Wikipedia lookup timed out for "${topic}".`;
   }
 }
 
-/**
- * Looks up grocery nutrition, allergens, and Nutri-Score via keyless OpenFoodFacts.
- */
 export async function lookupGroceryProduct(query: string, signal?: AbortSignal): Promise<string> {
   const clean = query.trim().slice(0, 80);
   if (!clean) return "Give me a product name or barcode to check.";
@@ -57,18 +52,17 @@ export async function lookupGroceryProduct(query: string, signal?: AbortSignal):
     const p = isBarcode ? data.product : data.products?.[0];
     if (!p?.product_name) return `No grocery match found for "${clean}".`;
     const name = sanitiseExternalData(p.product_name).clean.slice(0, 80);
-    const grade = p.nutriscore_grade ? `Nutri-Score ${p.nutriscore_grade.toUpperCase()}` : "Nutri-Score N/A";
+    const validGrade = p.nutriscore_grade && /^[a-e]$/i.test(p.nutriscore_grade)
+      ? `Nutri-Score ${p.nutriscore_grade.toUpperCase()}`
+      : "Nutri-Score N/A";
     const allergens = p.allergens ? `Allergens: ${sanitiseExternalData(p.allergens).clean.slice(0, 80)}` : "No allergens listed";
-    return `${name} — ${grade}. ${allergens}.`;
+    return `${name} — ${validGrade}. ${allergens}.`;
   } catch (err) {
     if (signal?.aborted) throw err;
     return `Grocery lookup timed out for "${clean}".`;
   }
 }
 
-/**
- * Fetches live ECB exchange rates via keyless Frankfurter API.
- */
 export async function fetchFxRate(from: string, to: string, signal?: AbortSignal): Promise<number | null> {
   const f = from.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
   const t = to.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);

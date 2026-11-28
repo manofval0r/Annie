@@ -36,12 +36,8 @@ export const ALLOWED_OUTBOUND_HOSTS: ReadonlySet<string> = new Set([
   "api.groq.com",
   "generativelanguage.googleapis.com",
   "gmail.googleapis.com",
-  "www.googleapis.com",
-  "searchconsole.googleapis.com",
   "oauth2.googleapis.com",
   "api.github.com",
-  "github.com",
-  "graph.microsoft.com",
 ]);
 
 const PRIVATE_IP_PATTERNS = [

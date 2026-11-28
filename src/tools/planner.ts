@@ -1,5 +1,7 @@
 import { isUrlAllowed } from "../core/policy.js";
+import { sanitiseExternalData } from "../core/sanitise.js";
 import { fetchOpenMeteoWeather, fetchOsrmRouteEta } from "./free-apis.js";
+import { fetchFxRate } from "./knowledge.js";
 
 export interface WeekendPlanResult {
   city: string;
@@ -9,13 +11,14 @@ export interface WeekendPlanResult {
 
 /**
  * Live weather-aware weekend/errand planner using keyless Open-Meteo Geocoding,
- * Open-Meteo Forecast, and OSRM walking times — with curated offline fallback if rate-limited.
+ * Open-Meteo Forecast, Frankfurter FX, and OSRM walking times.
  */
 export async function buildWeekendPlan(
   city: string,
-  budgetEur: number,
+  budgetAmount: number,
   people: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  currency = "EUR"
 ): Promise<WeekendPlanResult> {
   const cleanCity = city.trim().slice(0, 40) || "Lisbon";
   const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanCity)}&count=1&language=en&format=json`;
@@ -24,13 +27,16 @@ export async function buildWeekendPlan(
   let resolvedName = cleanCity;
   let partial = false;
 
+  const timeoutSignal = AbortSignal.timeout(8_000);
+  const combined = signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal;
+
   try {
     if (isUrlAllowed(geoUrl).allowed) {
-      const res = await fetch(geoUrl, { signal: signal ?? AbortSignal.timeout(8_000), redirect: "error" });
+      const res = await fetch(geoUrl, { signal: combined, redirect: "error" });
       if (res.ok) {
         const data = (await res.json()) as { results?: Array<{ name: string; latitude: number; longitude: number }> };
         if (data.results?.[0]) {
-          resolvedName = data.results[0].name;
+          resolvedName = sanitiseExternalData(data.results[0].name).clean.slice(0, 40) || cleanCity;
           lat = data.results[0].latitude;
           lon = data.results[0].longitude;
         }
@@ -43,15 +49,14 @@ export async function buildWeekendPlan(
     partial = true;
   }
 
-  const weather = await fetchOpenMeteoWeather(lat, lon, signal);
+  const [weather, eta, fxRate] = await Promise.all([
+    fetchOpenMeteoWeather(lat, lon, signal),
+    fetchOsrmRouteEta({ lat, lon }, { lat: lat + 0.012, lon: lon + 0.008 }, signal),
+    currency !== "EUR" ? fetchFxRate(currency, "EUR", signal) : Promise.resolve(1),
+  ]);
   if (!weather) partial = true;
 
-  const eta = await fetchOsrmRouteEta(
-    { lat, lon },
-    { lat: lat + 0.012, lon: lon + 0.008 },
-    signal
-  );
-
+  const budgetEur = fxRate ? Math.round(budgetAmount * fxRate) : budgetAmount;
   const perPerson = Math.max(5, Math.floor((budgetEur * 0.6) / Math.max(1, people)));
   const rainSwap = weather && weather.rainProbability >= 50;
   const walkNote = eta ? `${eta.durationMinutes} min walk (${eta.distanceKm} km)` : "central walk";

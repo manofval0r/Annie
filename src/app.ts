@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
 import { enableJudgeSandbox, listOAuthConnections, resolveChannelUserId } from "./auth/vault.js";
-import { buildGoogleOAuthUrl } from "./tools/google.js";
+import { buildGoogleOAuthUrl, completeGoogleOAuthCallback } from "./tools/google.js";
 import { subscribeAuditEvents, type StoredAuditEvent } from "./core/audit.js";
 import { tickHeartbeat, type HeartbeatDeps } from "./core/heartbeat.js";
 import { triggerKill } from "./core/kill.js";
@@ -181,7 +181,9 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
   });
 
   app.get("/auth/google", (c) => {
-    const url = buildGoogleOAuthUrl("web-sandbox");
+    const senderId = c.req.query("senderId") || "web-sandbox";
+    const userId = resolveChannelUserId(db, "web", senderId);
+    const url = buildGoogleOAuthUrl(userId);
     if (!url) {
       return c.json({
         configured: false,
@@ -189,6 +191,15 @@ export function createApp(db: DatabaseSync, opts: AppOptions = {}) {
       }, 200);
     }
     return c.redirect(url);
+  });
+
+  app.get("/auth/google/callback", async (c) => {
+    const code = c.req.query("code") || "";
+    const state = c.req.query("state") || "";
+    if (!code || !state) return c.json({ error: "Missing code or state" }, 400);
+    const res = await completeGoogleOAuthCallback(db, code, state);
+    if (!res.ok) return c.json({ error: res.error }, 400);
+    return c.redirect("/?connected=google");
   });
 
   app.post("/api/debug/tick", async (c) => {
